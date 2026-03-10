@@ -1,0 +1,178 @@
+{
+  "skill_name": "comfyui",
+  "description": "ComfyUI 图片生成技能测试用例",
+  "evals": [
+    {
+      "id": 1,
+      "name": "text-to-image-chinese",
+      "prompt": "帮我生成一张图片，一位年轻的亚洲女孩，黑色长发，身穿浅蓝色连帽卫衣，站在学校操场上，阳光明媚，中景镜头",
+      "expected_output": "应该使用 text-to-image 工作流，将中文描述转换为英文提示词，生成符合描述的图片",
+      "assertions": [
+        {
+          "name": "uses_correct_workflow",
+          "expected": "使用 text-to-image 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "text-to-image"
+        },
+        {
+          "name": "converts_to_english",
+          "expected": "提示词转换为英文",
+          "check_type": "no_chinese_in_prompt"
+        },
+        {
+          "name": "includes_quality_tags",
+          "expected": "包含质量增强词",
+          "check_type": "contains_keyword",
+          "keyword": "masterpiece"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "text-to-image-landscape",
+      "prompt": "生成一张美丽的风景照，雪山、草地、蓝天白云，宽画幅",
+      "expected_output": "生成非人物类的风景图片，使用合适的构图",
+      "assertions": [
+        {
+          "name": "uses_correct_workflow",
+          "expected": "使用 text-to-image 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "text-to-image"
+        },
+        {
+          "name": "landscape_orientation",
+          "expected": "使用宽画幅（宽度 > 高度）",
+          "check_type": "width_greater_than_height"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "edit-image",
+      "prompt": "把这张照片 photo.jpg 里的人头发改成红色",
+      "expected_output": "使用 image-edit 工作流，编辑图片的头发颜色",
+      "assertions": [
+        {
+          "name": "uses_edit_workflow",
+          "expected": "使用 image-edit 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "image-edit"
+        },
+        {
+          "name": "reads_input_image",
+          "expected": "读取输入图片",
+          "check_type": "contains_keyword",
+          "keyword": "photo.jpg"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "upscale-image",
+      "prompt": "把这张图片放大到 3000px，要高清的",
+      "expected_output": "使用 upscale 工作流，放大图片到指定尺寸",
+      "assertions": [
+        {
+          "name": "uses_upscale_workflow",
+          "expected": "使用 upscale 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "upscale"
+        },
+        {
+          "name": "sets_target_size",
+          "expected": "设置目标尺寸为 3000",
+          "check_type": "contains_keyword",
+          "keyword": "3000"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "expand-image",
+      "prompt": "把这张照片向四周各扩展 300 像素，变成户外森林场景",
+      "expected_output": "使用 image-expend 工作流，向四周扩展图片",
+      "assertions": [
+        {
+          "name": "uses_expand_workflow",
+          "expected": "使用 image-expend 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "image-expend"
+        },
+        {
+          "name": "sets_expand_parameters",
+          "expected": "设置扩展参数为 300",
+          "check_type": "contains_keyword",
+          "keyword": "300"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "casual-generation",
+      "prompt": "画个猫",
+      "expected_output": "生成一张猫的图片",
+      "assertions": [
+        {
+          "name": "uses_generation_workflow",
+          "expected": "使用 text-to-image 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "text-to-image"
+        },
+        {
+          "name": "includes_cat_description",
+          "expected": "提示词包含猫",
+          "check_type": "contains_keyword",
+          "keyword": "cat"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "ai-art-trigger",
+      "prompt": "帮我用 AI 画一张动漫风格的头像",
+      "expected_output": "识别出 AI 绘画需求，生成动漫风格图片",
+      "assertions": [
+        {
+          "name": "uses_generation_workflow",
+          "expected": "使用 text-to-image 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "text-to-image"
+        },
+        {
+          "name": "includes_anime_style",
+          "expected": "提示词包含动漫风格",
+          "check_type": "contains_keyword",
+          "keyword": "anime"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "controlnet-preprocess",
+      "prompt": "把这张照片转换成 OpenPose 姿态图",
+      "expected_output": "使用 controlnet-preprocess 工作流生成姿态图",
+      "assertions": [
+        {
+          "name": "uses_controlnet_workflow",
+          "expected": "使用 controlnet-preprocess 工作流",
+          "check_type": "contains_keyword",
+          "keyword": "controlnet-preprocess"
+        },
+        {
+          "name": "uses_openpose",
+          "expected": "使用 OpenPose 预处理器",
+          "check_type": "contains_keyword",
+          "keyword": "Openpose"
+        }
+      ],
+      "files": []
+    }
+  ]
+}
