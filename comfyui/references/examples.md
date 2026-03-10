@@ -2,27 +2,11 @@
 
 本文档提供 ComfyUI 图片生成技能的各种使用示例。
 
-## 目录
-
-- [环境准备](#环境准备)
-- [文本生成图片](#文本生成图片)
-- [图片编辑](#图片编辑)
-- [图片放大](#图片放大)
-- [图片扩展](#图片扩展)
-- [ControlNet 预处理](#controlnet-预处理)
-- [高级用法](#高级用法)
-
----
-
 ## 环境准备
 
-### 设置环境变量
+### 验证环境变量
 
 ```bash
-# Linux/macOS
-export COMFYUI_API_SERVER="http://172.16.2.68:18000"
-export COMFYUI_API_TOKEN="your_api_token_here"
-
 # 验证设置
 echo "Server: ${COMFYUI_API_SERVER:-未设置}"
 echo "Token: ${COMFYUI_API_TOKEN:+已设置}"
@@ -42,16 +26,19 @@ curl "$COMFYUI_API_SERVER/comfyui/status" \
 
 ### 示例 1: 基础人像生成
 
-**用户请求**: "生成一张亚洲女孩的照片，长发，穿蓝色卫衣"
+**用户请求**: "一位年轻的亚洲女孩，黑色长发，身穿浅蓝色连帽卫衣，站在学校操场上"
 
 **执行步骤**:
 
 1. 构造提示词（转换为英文）:
-   ```
-   young Asian woman, long black hair, wearing light blue hoodie,
-   smiling, standing, outdoor, natural lighting,
-   medium shot, front view, masterpiece, best quality, ultra detailed
-   ```
+    ```
+    Character Features: Young Asian girl, 16-18 years old, slender figure, fair skin, delicate features, round bright eyes; long, smooth black hair reaching the waist with slightly curled ends.
+    Character Clothing: Light blue loose hoodie with white lettering, hood down; dark gray joggers; white sneakers with light gray socks. Accessories include a black wristband and small silver hoop earrings. Simple, youthful style.
+    Expression/Actions: Sweet natural smile, looking at the camera. Standing relaxed with weight on the right leg, hands in hoodie pockets, shoulders down. Head slightly tilted left, hair brushing cheeks. Youthful standing pose.
+    Environment/Background: School playground with a red running track and green turf. Background includes beige school buildings, basketball hoops, and trees. Clear blue sky with clouds, bright sunlight.
+    Composition: Medium shot, subject at left golden ratio. Slightly low eye-level angle. Shallow depth of field blurring the background. Bright palette of light blue and white with red/green accents. Soft natural side lighting. Sunny, fresh, youthful campus atmosphere.
+    Art Style: Realistic photography, commercial quality. Sharp, clear, natural colors. Fresh and dreamy aesthetics with soft lighting. Cinematic youthful portrait effect.
+    ```
 
 2. 调用 API:
    ```bash
@@ -98,15 +85,6 @@ curl -X POST "$COMFYUI_API_SERVER/execute/text-to-image/run" \
   }'
 ```
 
-### 示例 3: 使用辅助脚本
-
-```bash
-python scripts/text_to_image.py \
-  "一位美丽的女孩，长发飘飘，穿着白色连衣裙" \
-  --width 1200 --height 1600 \
-  --output beauty_portrait.png
-```
-
 ---
 
 ## 图片编辑
@@ -141,15 +119,6 @@ python scripts/text_to_image.py \
 **提示词**:
 ```
 add a red hat on the head
-```
-
-### 示例 3: 使用辅助脚本
-
-```bash
-python scripts/edit_image.py \
-  --input portrait.jpg \
-  --prompt "change hair color to blonde" \
-  --output blonde_hair.jpg
 ```
 
 ---
@@ -193,16 +162,6 @@ python scripts/edit_image.py \
 }
 ```
 
-### 示例 3: 使用辅助脚本
-
-```bash
-python scripts/upscale_image.py \
-  --input small.jpg \
-  --side-length 3000 \
-  --denoise 0.35 \
-  --output large.jpg
-```
-
 ---
 
 ## 图片扩展
@@ -240,17 +199,6 @@ python scripts/upscale_image.py \
   "bottom": 0,
   "feathering": 100
 }
-```
-
-### 示例 3: 使用辅助脚本
-
-```bash
-python scripts/expand_image.py \
-  --input photo.jpg \
-  --prompt "expand into beautiful beach scene, ocean and sand" \
-  --left 200 --right 200 --top 0 --bottom 0 \
-  --feathering 100 \
-  --output expanded.jpg
 ```
 
 ---
@@ -360,16 +308,10 @@ data: {"status": "completed", "task_id": "abc123", "message": "Done!"}
 
 ## 常见问题
 
-### Q: 如何将中文描述转换为英文？
+### Q: 图片 base64 导致参数过长如何解决？
 
-**方法 1**: 使用参考文档中的词汇表手动转换
-
-**方法 2**: 使用辅助脚本
-```bash
-python scripts/generate_prompt.py "一位美丽的亚洲女孩，长发飘逸"
-```
-
-**方法 3**: 使用翻译工具（如 Google Translate）然后调整
+1. 将参数写入临时文件 /tmp/comfyui-args-xxxx.json
+2. curl 通过 `-d @/tmp/tmp/comfyui-args-xxxx.json` 进行请求发送
 
 ### Q: 生成质量不好怎么办？
 
@@ -422,15 +364,3 @@ python scripts/generate_prompt.py "一位美丽的亚洲女孩，长发飘逸"
    ```
 
 3. （可选）使用其他工具将产品图合成到背景上
-
----
-
-## 脚本快速参考
-
-| 脚本 | 功能 | 基本用法 |
-|------|------|---------|
-| `text_to_image.py` | 文本生成图片 | `python scripts/text_to_image.py "提示词"` |
-| `edit_image.py` | 编辑图片 | `python scripts/edit_image.py --input 图片.jpg --prompt "编辑指令"` |
-| `upscale_image.py` | 放大图片 | `python scripts/upscale_image.py --input 图片.jpg --side-length 3000` |
-| `expand_image.py` | 扩展图片 | `python scripts/expand_image.py --input 图片.jpg --prompt "扩展描述"` |
-| `generate_prompt.py` | 生成提示词 | `python scripts/generate_prompt.py "中文描述"` |

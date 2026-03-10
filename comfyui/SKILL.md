@@ -88,17 +88,12 @@ curl "$COMFYUI_API_SERVER/workflows/{workflow_id}" \
 用户说："一位年轻的亚洲女孩，黑色长发，身穿浅蓝色连帽卫衣，站在学校操场上"
 
 转换为：
-Character Features: Young Asian girl, approximately 16-18 years old, with a slender and well-proportioned figure, moderate height; delicate and soft facial features, fair and smooth skin, refined and three-dimensional facial features, naturally arched eyebrows, round and bright eyes; long black hair that is smooth and flowing, healthy and glossy texture, waist-length, naturally slightly curled at the ends, with some strands gently brushing against her shoulders.
-
-Character Clothing: Wearing a light blue hooded sweatshirt made of soft and skin-friendly fabric, with a loose and casual fit, the hood naturally draped behind her back, decorated with simple small white letter prints on the chest; paired with dark gray slim-fit jogger pants with tapered cuffs; wearing pure white athletic sneakers with neatly tied laces, paired with light gray cotton ankle socks; wearing a slim black sports wristband on her wrist, small silver hoop earrings on her earlobes, overall look is simple and youthful.
-
-Expression/Actions: Wearing a natural sweet smile, with corners of the mouth slightly upturned, clear and bright eyes, gazing gently toward the camera; standing naturally upright, weight slightly shifted to the right leg, relaxed and comfortable posture; hands casually tucked into the front pocket of the hoodie, shoulders relaxed and lowered; head slightly tilted to the left, hair gently brushing against her cheeks with the breeze, overall presenting a youthful and energetic static standing pose.
-
-Environment/Background: School playground scene, red rubber running track curving around green artificial turf, track lines clearly visible; background features beige school buildings, blue basketball hoops, silver flagpoles and other iconic campus facilities; neatly planted roadside trees along the playground edge with lush green leaves; clear blue sky with a few fluffy white clouds, bright and transparent sunlight.
-
-Composition: Medium portrait composition, character positioned at the left golden ratio point; shooting angle is eye-level with a slightly low angle to enhance the youthful vitality; shallow depth of field effect with moderately blurred background buildings and track to highlight the subject; color palette dominated by fresh and bright light blue and white tones, with playground red and green colors as soft accents; natural lighting from the front side, soft and even afternoon sunlight, delicate light and shadow transitions on the character's face; overall atmosphere is sunny, fresh, and full of youthful campus vibes.
-
-Art Style: Realistic photography style, pursuing commercial-grade portrait quality; sharp and clear image with accurate and natural color reproduction; incorporating fresh and dreamy visual aesthetics with rich and soft lighting layers; post-processing focuses on preserving skin texture and environmental details, highlighting the harmony between character expression and campus atmosphere, overall presenting a cinematic youthful portrait effect.
+Character Features: Young Asian girl, 16-18 years old, slender figure, fair skin, delicate features, round bright eyes; long, smooth black hair reaching the waist with slightly curled ends.
+Character Clothing: Light blue loose hoodie with white lettering, hood down; dark gray joggers; white sneakers with light gray socks. Accessories include a black wristband and small silver hoop earrings. Simple, youthful style.
+Expression/Actions: Sweet natural smile, looking at the camera. Standing relaxed with weight on the right leg, hands in hoodie pockets, shoulders down. Head slightly tilted left, hair brushing cheeks. Youthful standing pose.
+Environment/Background: School playground with a red running track and green turf. Background includes beige school buildings, basketball hoops, and trees. Clear blue sky with clouds, bright sunlight.
+Composition: Medium shot, subject at left golden ratio. Slightly low eye-level angle. Shallow depth of field blurring the background. Bright palette of light blue and white with red/green accents. Soft natural side lighting. Sunny, fresh, youthful campus atmosphere.
+Art Style: Realistic photography, commercial quality. Sharp, clear, natural colors. Fresh and dreamy aesthetics with soft lighting. Cinematic youthful portrait effect.
 ```
 
 ### 步骤 4：执行工作流
@@ -126,43 +121,6 @@ curl "$COMFYUI_API_SERVER/download/{task_id}/0" \
 ```
 
 如果批量生成（batch_size > 1），需要下载多个索引（0, 1, 2, ...）
-
-## 使用辅助脚本
-
-技能提供了辅助脚本来简化操作：
-
-### 生成图片
-```bash
-python scripts/text_to_image.py \
-  "一位美丽的亚洲女孩，长发飘飘" \
-  --width 1200 --height 1600 \
-  --output girl.png
-```
-
-### 编辑图片
-```bash
-python scripts/edit_image.py \
-  --input photo.jpg \
-  --prompt "把头发改成红色" \
-  --output edited.png
-```
-
-### 放大图片
-```bash
-python scripts/upscale_image.py \
-  --input photo.jpg \
-  --side-length 3000 \
-  --output upscaled.png
-```
-
-### 扩展图片
-```bash
-python scripts/expand_image.py \
-  --input photo.jpg \
-  --prompt "扩展为户外森林场景" \
-  --left 300 --right 300 --top 200 --bottom 200 \
-  --output expanded.png
-```
 
 ## 常用参数说明
 
