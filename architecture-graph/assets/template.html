@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_NAME}} 架构图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(56, 189, 248, 0.2);
+            transform: translateX(-5px);
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .module-group {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .group-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-1 .group-title { border-color: #38bdf8; color: #38bdf8; }
+        .group-2 .group-title { border-color: #818cf8; color: #818cf8; }
+        .group-3 .group-title { border-color: #c084fc; color: #c084fc; }
+        .group-4 .group-title { border-color: #f472b6; color: #f472b6; }
+        .group-5 .group-title { border-color: #34d399; color: #34d399; }
+
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .module-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .module-icon {
+            font-size: 20px;
+        }
+
+        .module-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .module-file {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 8px;
+        }
+
+        .module-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .detail-header {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .detail-title {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .detail-file {
+            font-family: 'Courier New', monospace;
+            color: #64748b;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .detail-desc {
+            color: #94a3b8;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .detail-section {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .detail-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #38bdf8;
+        }
+
+        .code-block {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow: hidden;
+            margin: 15px 0;
+            line-height: 1.7;
+        }
+
+        .code-header {
+            background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .code-lang {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ef4444; }
+        .code-dot.yellow { background: #eab308; }
+        .code-dot.green { background: #22c55e; }
+
+        .code-content {
+            background: #0f172a;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .code-content pre {
+            margin: 0;
+            white-space: pre;
+        }
+
+        .code-content code {
+            color: #e2e8f0;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .kw { color: #c084fc; }
+        .str { color: #34d399; }
+        .num { color: #fbbf24; }
+        .cm { color: #64748b; font-style: italic; }
+        .fn { color: #38bdf8; }
+
+        .architecture-diagram {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .diagram-box {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .flow-item {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(56, 189, 248, 0.5);
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+        }
+
+        .flow-arrow-down {
+            text-align: center;
+            color: #38bdf8;
+            font-size: 24px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="overview-page" class="page active">
+            <h1>{{PROJECT_NAME}} 架构图</h1>
+            <p class="subtitle">点击任意模块查看详细说明</p>
+
+            <div class="architecture">
+                <div class="module-group group-1">
+                    <div class="group-title">分组 1 名称</div>
+                    <div class="modules">
+                        <div class="module-card" onclick="showDetail('module1')">
+                            <div class="module-header">
+                                <span class="module-icon">📦</span>
+                                <span class="module-title">模块名称</span>
+                            </div>
+                            <div class="module-file">src/module.ts</div>
+                            <div class="module-desc">模块描述</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module-group group-2">
+                    <div class="group-title">分组 2 名称</div>
+                    <div class="modules">
+                        <div class="module-card" onclick="showDetail('module2')">
+                            <div class="module-header">
+                                <span class="module-icon">🔧</span>
+                                <span class="module-title">模块名称</span>
+                            </div>
+                            <div class="module-file">src/module.ts</div>
+                            <div class="module-desc">模块描述</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detail-page" class="page"></div>
+    </div>
+
+    <script>
+        const moduleDetails = {
+            module1: {
+                title: '模块名称',
+                file: 'src/module.ts',
+                description: '模块职责说明',
+                sections: [
+                    {
+                        title: '架构设计',
+                        content: '<div class="architecture-diagram">...</div>'
+                    },
+                    {
+                        title: '核心功能',
+                        content: '<ul class="feature-list"><li>功能1</li></ul>'
+                    },
+                    {
+                        title: '使用示例',
+                        content: '<div class="code-block">...</div>'
+                    }
+                ]
+            }
+        };
+
+        function showDetail(moduleId) {
+            const detail = moduleDetails[moduleId];
+            if (!detail) return;
+
+            let sectionsHtml = '';
+            for (const section of detail.sections) {
+                sectionsHtml += '<div class="detail-section">';
+                sectionsHtml += '<h3>' + section.title + '</h3>';
+                sectionsHtml += section.content;
+                sectionsHtml += '</div>';
+            }
+
+            const detailHtml = '<button class="back-button" onclick="showOverview()">← 返回总览</button>' +
+                '<div class="detail-header">' +
+                '<div class="detail-title">' + detail.title + '</div>' +
+                '<div class="detail-file">' + detail.file + '</div>' +
+                '<div class="detail-desc">' + detail.description + '</div>' +
+                '</div>' + sectionsHtml;
+
+            document.getElementById('overview-page').classList.remove('active');
+            document.getElementById('detail-page').classList.add('active');
+            document.getElementById('detail-page').innerHTML = detailHtml;
+        }
+
+        function showOverview() {
+            document.getElementById('overview-page').classList.add('active');
+            document.getElementById('detail-page').classList.remove('active');
+            document.getElementById('detail-page').innerHTML = '';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') showOverview();
+        });
+    </script>
+</body>
+</html>

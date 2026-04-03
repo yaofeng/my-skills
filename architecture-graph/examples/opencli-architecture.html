@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCLI 架构总览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        /* 页面切换 */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* 返回按钮 */
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(56, 189, 248, 0.2);
+            transform: translateX(-5px);
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .layer {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .layer-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer-entry .layer-title { border-color: #38bdf8; color: #38bdf8; }
+        .layer-engine .layer-title { border-color: #818cf8; color: #818cf8; }
+        .layer-adapter .layer-title { border-color: #c084fc; color: #c084fc; }
+        .layer-connection .layer-title { border-color: #f472b6; color: #f472b6; }
+        .layer-extension .layer-title { border-color: #34d399; color: #34d399; }
+
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .module {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .module:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .module-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .module-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .module-file {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 8px;
+        }
+
+        .module-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .submodules {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .submodule {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            color: #38bdf8;
+        }
+
+        .flow-arrows {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .arrow-line {
+            width: 2px;
+            height: 30px;
+            background: linear-gradient(to bottom, #38bdf8, #818cf8);
+        }
+
+        .arrow-text {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .data-flow {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+        }
+
+        .data-flow h3 {
+            margin-bottom: 15px;
+            color: #38bdf8;
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flow-step {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .flow-arrow {
+            color: #64748b;
+            font-size: 1.2rem;
+        }
+
+        /* 详情页面样式 */
+        .detail-header {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .detail-title {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .detail-file {
+            font-family: 'Courier New', monospace;
+            color: #64748b;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .detail-desc {
+            color: #94a3b8;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .detail-section {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .detail-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-section h4 {
+            font-size: 1.1rem;
+            margin: 15px 0 10px 0;
+            color: #818cf8;
+        }
+
+        .code-block {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow: hidden;
+            margin: 15px 0;
+            line-height: 1.7;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .code-header {
+            background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .code-lang {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-dot.red { background: #ef4444; }
+        .code-dot.yellow { background: #eab308; }
+        .code-dot.green { background: #22c55e; }
+
+        .code-content {
+            background: #0f172a;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .code-content pre {
+            margin: 0;
+            white-space: pre;
+            background: transparent;
+        }
+
+        .code-content code {
+            color: #e2e8f0;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        /* 语法高亮 - 深色主题优化 */
+        .kw { color: #c084fc; font-weight: 500; } /* 关键字 - 紫色 */
+        .str { color: #34d399; } /* 字符串 - 绿色 */
+        .num { color: #fbbf24; } /* 数字 - 黄色 */
+        .cm { color: #64748b; font-style: italic; } /* 注释 - 灰色斜体 */
+        .fn { color: #38bdf8; } /* 函数 - 蓝色 */
+        .op { color: #94a3b8; } /* 操作符 - 浅灰 */
+        .type { color: #f472b6; } /* 类型 - 粉色 */
+        .prop { color: #67e8f9; } /* 属性 - 青色 */
+        .var { color: #f1f5f9; } /* 变量 - 亮白 */
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .detail-table th {
+            background: rgba(56, 189, 248, 0.1);
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .detail-table tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #34d399;
+            font-weight: bold;
+        }
+
+        .architecture-diagram {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .diagram-box {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(56, 189, 248, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .diagram-title {
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .diagram-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .diagram-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .diagram-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #38bdf8;
+        }
+
+        .diagram-arrow {
+            text-align: center;
+            color: #64748b;
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+
+        .diagram-nested {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .diagram-nested-title {
+            font-size: 0.85rem;
+            color: #818cf8;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flow-item {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            padding: 8px 15px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .flow-arrow-down {
+            color: #64748b;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .modules {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .detail-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 总览页面 -->
+        <div id="overview-page" class="page active">
+            <h1>OpenCLI 架构总览</h1>
+            <p class="subtitle">AI-Native CLI Hub — 双引擎架构 · 70+ 适配器 · 浏览器桥接</p>
+
+            <div class="architecture">
+                <!-- 入口层 -->
+                <div class="layer layer-entry">
+                    <div class="layer-title">
+                        <span>🚀</span>
+                        <span>入口层 (Entry Layer)</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('main')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #38bdf8;">📦</div>
+                                <div class="module-name">主入口</div>
+                            </div>
+                            <div class="module-file">src/main.ts</div>
+                            <div class="module-desc">CLI 启动入口，负责环境初始化、CLI 发现、插件加载、补全处理和更新检查</div>
+                            <div class="submodules">
+                                <span class="submodule">PATH 修复</span>
+                                <span class="submodule">CLI 发现</span>
+                                <span class="submodule">插件加载</span>
+                                <span class="submodule">补全处理</span>
+                                <span class="submodule">更新检查</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('cli')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #38bdf8;">⚙️</div>
+                                <div class="module-name">CLI 框架</div>
+                            </div>
+                            <div class="module-file">src/cli.ts</div>
+                            <div class="module-desc">Commander.js 程序初始化，内置命令注册（list, validate, explore, daemon 等）</div>
+                            <div class="submodules">
+                                <span class="submodule">Commander 初始化</span>
+                                <span class="submodule">内置命令</span>
+                                <span class="submodule">参数解析</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows">
+                    <div class="arrow">
+                        <div class="arrow-line"></div>
+                        <div class="arrow-text">命令注册 & 发现</div>
+                    </div>
+                </div>
+
+                <!-- 引擎层 -->
+                <div class="layer layer-engine">
+                    <div class="layer-title">
+                        <span>⚡</span>
+                        <span>引擎层 (Engine Layer)</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('registry')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">📋</div>
+                                <div class="module-name">注册中心</div>
+                            </div>
+                            <div class="module-file">src/registry.ts</div>
+                            <div class="module-desc">全局命令注册表，管理所有 CLI 命令的元数据、策略和参数定义</div>
+                            <div class="submodules">
+                                <span class="submodule">Strategy 枚举</span>
+                                <span class="submodule">CliCommand 接口</span>
+                                <span class="submodule">registerCommand()</span>
+                                <span class="submodule">getRegistry()</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('discovery')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">🔍</div>
+                                <div class="module-name">发现引擎</div>
+                            </div>
+                            <div class="module-file">src/discovery.ts</div>
+                            <div class="module-desc">扫描 YAML/TS 适配器文件，支持 manifest 快速路径和懒加载优化</div>
+                            <div class="submodules">
+                                <span class="submodule">YAML 解析</span>
+                                <span class="submodule">TS 模块扫描</span>
+                                <span class="submodule">Manifest 快速路径</span>
+                                <span class="submodule">兼容垫片</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('execution')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">🎯</div>
+                                <div class="module-name">执行引擎</div>
+                            </div>
+                            <div class="module-file">src/execution.ts</div>
+                            <div class="module-desc">命令执行核心，处理参数验证、浏览器会话管理、超时控制和懒加载</div>
+                            <div class="submodules">
+                                <span class="submodule">参数验证</span>
+                                <span class="submodule">浏览器会话</span>
+                                <span class="submodule">超时控制</span>
+                                <span class="submodule">懒加载</span>
+                                <span class="submodule">生命周期钩子</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('commanderAdapter')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">🌉</div>
+                                <div class="module-name">Commander 适配</div>
+                            </div>
+                            <div class="module-file">src/commanderAdapter.ts</div>
+                            <div class="module-desc">Registry → Commander 桥接，处理命令注册、参数绑定和输出渲染</div>
+                            <div class="submodules">
+                                <span class="submodule">命令注册</span>
+                                <span class="submodule">参数绑定</span>
+                                <span class="submodule">输出渲染</span>
+                                <span class="submodule">错误处理</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('output')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">🎨</div>
+                                <div class="module-name">输出格式化</div>
+                            </div>
+                            <div class="module-file">src/output.ts</div>
+                            <div class="module-desc">统一输出格式支持：table、json、yaml、markdown、csv</div>
+                            <div class="submodules">
+                                <span class="submodule">Table 表格</span>
+                                <span class="submodule">JSON 输出</span>
+                                <span class="submodule">YAML 输出</span>
+                                <span class="submodule">Markdown</span>
+                                <span class="submodule">CSV</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('runtime')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #818cf8;">⏱️</div>
+                                <div class="module-name">运行时管理</div>
+                            </div>
+                            <div class="module-file">src/runtime.ts</div>
+                            <div class="module-desc">浏览器工厂选择、超时管理、会话生命周期控制</div>
+                            <div class="submodules">
+                                <span class="submodule">BrowserFactory</span>
+                                <span class="submodule">browserSession()</span>
+                                <span class="submodule">runWithTimeout()</span>
+                                <span class="submodule">环境变量</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows">
+                    <div class="arrow">
+                        <div class="arrow-line"></div>
+                        <div class="arrow-text">双引擎驱动</div>
+                    </div>
+                </div>
+
+                <!-- 适配器层 -->
+                <div class="layer layer-adapter">
+                    <div class="layer-title">
+                        <span>🔌</span>
+                        <span>适配器层 (Adapter Layer)</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('pipeline')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #c084fc;">📄</div>
+                                <div class="module-name">YAML Pipeline 引擎</div>
+                            </div>
+                            <div class="module-file">src/pipeline/</div>
+                            <div class="module-desc">声明式数据管道，支持 fetch、map、filter、limit、download 等步骤</div>
+                            <div class="submodules">
+                                <span class="submodule">executor.ts</span>
+                                <span class="submodule">registry.ts</span>
+                                <span class="submodule">template.ts</span>
+                                <span class="submodule">steps/fetch.ts</span>
+                                <span class="submodule">steps/transform.ts</span>
+                                <span class="submodule">steps/browser.ts</span>
+                                <span class="submodule">steps/intercept.ts</span>
+                                <span class="submodule">steps/tap.ts</span>
+                                <span class="submodule">steps/download.ts</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('adapters')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #c084fc;">💻</div>
+                                <div class="module-name">TypeScript 适配器</div>
+                            </div>
+                            <div class="module-file">src/clis/ (70+ 站点)</div>
+                            <div class="module-desc">编程式适配器，支持复杂页面交互、写操作和自定义逻辑</div>
+                            <div class="submodules">
+                                <span class="submodule">中文平台</span>
+                                <span class="submodule">全球社交</span>
+                                <span class="submodule">内容/媒体</span>
+                                <span class="submodule">AI 工具</span>
+                                <span class="submodule">新闻/财经</span>
+                                <span class="submodule">Electron 应用</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('external')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #c084fc;">🔧</div>
+                                <div class="module-name">外部 CLI Hub</div>
+                            </div>
+                            <div class="module-file">src/external.ts</div>
+                            <div class="module-desc">注册、自动安装和透传执行外部 CLI 工具（gh, docker, vercel 等）</div>
+                            <div class="submodules">
+                                <span class="submodule">external-clis.yaml</span>
+                                <span class="submodule">自动安装</span>
+                                <span class="submodule">透传执行</span>
+                                <span class="submodule">用户自定义</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('plugin')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #c084fc;">🧩</div>
+                                <div class="module-name">插件系统</div>
+                            </div>
+                            <div class="module-file">src/plugin.ts</div>
+                            <div class="module-desc">插件安装/卸载/验证，支持 Git 源和生命周期钩子</div>
+                            <div class="submodules">
+                                <span class="submodule">install/uninstall</span>
+                                <span class="submodule">Git 源支持</span>
+                                <span class="submodule">生命周期钩子</span>
+                                <span class="submodule">兼容性检查</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows">
+                    <div class="arrow">
+                        <div class="arrow-line"></div>
+                        <div class="arrow-text">浏览器操作 & 数据获取</div>
+                    </div>
+                </div>
+
+                <!-- 连接层 -->
+                <div class="layer layer-connection">
+                    <div class="layer-title">
+                        <span>🌐</span>
+                        <span>连接层 (Connection Layer)</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('browserBridge')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">🖥️</div>
+                                <div class="module-name">Browser Bridge 模式</div>
+                            </div>
+                            <div class="module-file">src/browser/mcp.ts</div>
+                            <div class="module-desc">通过本地 Daemon 和 Chrome 扩展与浏览器通信，复用登录态</div>
+                            <div class="submodules">
+                                <span class="submodule">自动启动 Daemon</span>
+                                <span class="submodule">WebSocket 连接</span>
+                                <span class="submodule">IPage 实现</span>
+                                <span class="submodule">会话管理</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('cdp')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">🔌</div>
+                                <div class="module-name">CDP 模式</div>
+                            </div>
+                            <div class="module-file">src/browser/cdp.ts</div>
+                            <div class="module-desc">直接通过 Chrome DevTools Protocol 连接，支持 Electron 应用控制</div>
+                            <div class="submodules">
+                                <span class="submodule">WebSocket 连接</span>
+                                <span class="submodule">Runtime.evaluate</span>
+                                <span class="submodule">Page.enable</span>
+                                <span class="submodule">事件监听</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('page')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">📄</div>
+                                <div class="module-name">Page 抽象</div>
+                            </div>
+                            <div class="module-file">src/browser/page.ts</div>
+                            <div class="module-desc">实现 IPage 接口，统一浏览器操作，将所有操作转换为 Daemon 命令</div>
+                            <div class="submodules">
+                                <span class="submodule">goto()</span>
+                                <span class="submodule">evaluate()</span>
+                                <span class="submodule">snapshot()</span>
+                                <span class="submodule">click()</span>
+                                <span class="submodule">typeText()</span>
+                                <span class="submodule">getCookies()</span>
+                                <span class="submodule">screenshot()</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('stealth')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">👻</div>
+                                <div class="module-name">反检测 (Stealth)</div>
+                            </div>
+                            <div class="module-file">src/browser/stealth.ts</div>
+                            <div class="module-desc">修补浏览器指纹，防止被网站检测为自动化工具</div>
+                            <div class="submodules">
+                                <span class="submodule">navigator.webdriver</span>
+                                <span class="submodule">window.chrome</span>
+                                <span class="submodule">插件列表伪造</span>
+                                <span class="submodule">Error stack 清理</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('domSnapshot')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">📸</div>
+                                <div class="module-name">DOM 快照引擎</div>
+                            </div>
+                            <div class="module-file">src/browser/dom-snapshot.ts</div>
+                            <div class="module-desc">智能 DOM 裁剪，为 LLM 生成可访问性快照，注入 data-opencli-ref</div>
+                            <div class="submodules">
+                                <span class="submodule">可见性检测</span>
+                                <span class="submodule">交互性检测</span>
+                                <span class="submodule">广告过滤</span>
+                                <span class="submodule">增量 Diff</span>
+                                <span class="submodule">Shadow DOM</span>
+                                <span class="submodule">iframe 提取</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('domHelpers')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">🔧</div>
+                                <div class="module-name">DOM 操作助手</div>
+                            </div>
+                            <div class="module-file">src/browser/dom-helpers.ts</div>
+                            <div class="module-desc">生成在页面上下文中执行的 JS 代码，用于点击、输入、等待等操作</div>
+                            <div class="submodules">
+                                <span class="submodule">clickJs()</span>
+                                <span class="submodule">typeTextJs()</span>
+                                <span class="submodule">pressKeyJs()</span>
+                                <span class="submodule">waitForTextJs()</span>
+                                <span class="submodule">autoScrollJs()</span>
+                                <span class="submodule">networkRequestsJs()</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('daemonClient')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #f472b6;">🔗</div>
+                                <div class="module-name">Daemon 客户端</div>
+                            </div>
+                            <div class="module-file">src/browser/daemon-client.ts</div>
+                            <div class="module-desc">与本地 Daemon 通信的 HTTP 客户端，发送命令并接收结果</div>
+                            <div class="submodules">
+                                <span class="submodule">sendCommand()</span>
+                                <span class="submodule">isDaemonRunning()</span>
+                                <span class="submodule">isExtensionConnected()</span>
+                                <span class="submodule">重试机制</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows">
+                    <div class="arrow">
+                        <div class="arrow-line"></div>
+                        <div class="arrow-text">HTTP POST /command ↔ WebSocket ↔ chrome.* API</div>
+                    </div>
+                </div>
+
+                <!-- Chrome Extension 层 -->
+                <div class="layer layer-extension">
+                    <div class="layer-title">
+                        <span>🧩</span>
+                        <span>Chrome Extension 层</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('extension')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #34d399;">📡</div>
+                                <div class="module-name">Service Worker</div>
+                            </div>
+                            <div class="module-file">extension/src/background.ts</div>
+                            <div class="module-desc">扩展后台脚本，管理 WebSocket 连接、命令分发和窗口隔离</div>
+                            <div class="submodules">
+                                <span class="submodule">WS 连接管理</span>
+                                <span class="submodule">命令分发</span>
+                                <span class="submodule">窗口隔离</span>
+                                <span class="submodule">空闲超时</span>
+                                <span class="submodule">重连策略</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('extensionCdp')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #34d399;">🔍</div>
+                                <div class="module-name">CDP 执行引擎</div>
+                            </div>
+                            <div class="module-file">extension/src/cdp.ts</div>
+                            <div class="module-desc">通过 chrome.debugger API 执行 JS，管理调试器附件状态</div>
+                            <div class="submodules">
+                                <span class="submodule">chrome.debugger.attach</span>
+                                <span class="submodule">Runtime.evaluate</span>
+                                <span class="submodule">断点禁用</span>
+                                <span class="submodule">URL 验证</span>
+                            </div>
+                        </div>
+                        <div class="module" onclick="showDetail('protocol')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #34d399;">📋</div>
+                                <div class="module-name">协议定义</div>
+                            </div>
+                            <div class="module-file">extension/src/protocol.ts</div>
+                            <div class="module-desc">定义 Daemon 和 Extension 之间的通讯协议类型</div>
+                            <div class="submodules">
+                                <span class="submodule">Command 接口</span>
+                                <span class="submodule">Result 接口</span>
+                                <span class="submodule">Action 类型</span>
+                                <span class="submodule">常量定义</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 辅助工具 -->
+                <div class="layer" style="border-color: rgba(148, 163, 184, 0.3);">
+                    <div class="layer-title" style="border-color: #94a3b8; color: #94a3b8;">
+                        <span>🛠️</span>
+                        <span>辅助工具 (Utilities)</span>
+                    </div>
+                    <div class="modules">
+                        <div class="module" onclick="showDetail('explore')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">🔍</div>
+                                <div class="module-name">探索工具</div>
+                            </div>
+                            <div class="module-file">src/explore.ts</div>
+                            <div class="module-desc">智能 API 发现，自动滚动、抓包、分析响应、推断能力</div>
+                        </div>
+                        <div class="module" onclick="showDetail('doctor')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">🏥</div>
+                                <div class="module-name">诊断工具</div>
+                            </div>
+                            <div class="module-file">src/doctor.ts</div>
+                            <div class="module-desc">浏览器连通性检测，Daemon 状态检查，自动修复建议</div>
+                        </div>
+                        <div class="module" onclick="showDetail('errors')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">❌</div>
+                                <div class="module-name">错误系统</div>
+                            </div>
+                            <div class="module-file">src/errors.ts</div>
+                            <div class="module-desc">统一 CliError 层次结构，Unix 风格退出码，友好错误提示</div>
+                        </div>
+                        <div class="module" onclick="showDetail('logger')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">📝</div>
+                                <div class="module-name">日志系统</div>
+                            </div>
+                            <div class="module-file">src/logger.ts</div>
+                            <div class="module-desc">结构化日志输出，支持不同级别和格式化</div>
+                        </div>
+                        <div class="module" onclick="showDetail('interceptor')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">🔄</div>
+                                <div class="module-name">拦截器</div>
+                            </div>
+                            <div class="module-file">src/interceptor.ts</div>
+                            <div class="module-desc">生成 fetch/XHR 拦截代码，用于 Pipeline 的 intercept 步骤</div>
+                        </div>
+                        <div class="module" onclick="showDetail('analysis')">
+                            <div class="module-header">
+                                <div class="module-icon" style="background: #94a3b8;">📊</div>
+                                <div class="module-name">分析模块</div>
+                            </div>
+                            <div class="module-file">src/analysis.ts</div>
+                            <div class="module-desc">URL 模式分析、字段角色检测、能力推断</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据流说明 -->
+            <div class="data-flow">
+                <h3>🔄 完整请求流程 (以 bilibili hot 为例)</h3>
+                <div class="flow-steps">
+                    <div class="flow-step">1. CLI 解析命令</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">2. execution.ts 判断需要浏览器</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">3. BrowserBridge.connect()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">4. 启动 Daemon (如未运行)</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">5. 等待 Extension WS 连接</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">6. Page.goto() 导航</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">7. Daemon HTTP POST /command</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">8. Extension chrome.tabs.create()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">9. 注入 stealth 脚本</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">10. 执行适配器 fetchJson()</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">11. 输出格式化</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">12. 窗口空闲 30s 后关闭</div>
+                </div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #38bdf8;"></div>
+                    <span>入口层</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #818cf8;"></div>
+                    <span>引擎层</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #c084fc;"></div>
+                    <span>适配器层</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f472b6;"></div>
+                    <span>连接层</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #34d399;"></div>
+                    <span>Chrome Extension</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #94a3b8;"></div>
+                    <span>辅助工具</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详情页面容器 -->
+        <div id="detail-page" class="page">
+            <button class="back-button" onclick="showOverview()">
+                ← 返回总览
+            </button>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模块详情数据
+        const moduleDetails = {
+            main: {
+                title: '📦 主入口 (main.ts)',
+                file: 'src/main.ts',
+                description: 'CLI 启动入口，负责环境初始化、CLI 发现、插件加载、补全处理和更新检查',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">main.ts (入口)</div>' +
+'<ul class="diagram-list">' +
+'<li>PATH 修复 (确保子进程能找到系统命令)</li>' +
+'<li>安装 Node.js 网络模块</li>' +
+'<li>确保用户 CLI 兼容垫片</li>' +
+'<li>发现内置 CLI (BUILTIN_CLIS)</li>' +
+'<li>发现用户 CLI (USER_CLIS)</li>' +
+'<li>加载插件系统</li>' +
+'<li>注册更新检查 (退出时通知)</li>' +
+'<li>后台检查更新 (非阻塞)</li>' +
+'<li>处理 --get-completions (快速路径)</li>' +
+'<li>发射 onStartup 钩子</li>' +
+'<li>调用 runCli() 启动 Commander</li>' +
+'</ul>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>PATH 修复</strong> — 确保标准系统路径可用，防止外部 CLI 执行失败</li>' +
+'<li><strong>CLI 发现</strong> — 扫描内置和用户目录的 YAML/TS 适配器</li>' +
+'<li><strong>插件加载</strong> — 按顺序加载插件，允许覆盖内置命令</li>' +
+'<li><strong>补全处理</strong> — 快速路径处理 Tab 补全请求，避免 Commander 解析开销</li>' +
+'<li><strong>更新检查</strong> — 后台获取最新版本信息，下次启动时显示通知</li>' +
+'<li><strong>生命周期钩子</strong> — 发射 onStartup 钩子，允许插件初始化</li>' +
+'</ul>'
+                    },
+                    {
+                        title: '📝 关键代码流程',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">TypeScript</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="cm">// 1. PATH 修复</span>\n' +
+'<span class="kw">if</span> (process.<span class="prop">platform</span> !== <span class="str">\'win32\'</span>) {\n' +
+'  <span class="kw">const</span> std = [<span class="str">\'/usr/local/bin\'</span>, <span class="str">\'/usr/bin\'</span>, <span class="str">\'/bin\'</span>, <span class="str">\'/usr/sbin\'</span>, <span class="str">\'/sbin\'</span>];\n' +
+'  <span class="kw">const</span> cur = <span class="kw">new</span> <span class="type">Set</span>((process.<span class="prop">env</span>.<span class="prop">PATH</span> ?? <span class="str">\'\'</span>).<span class="fn">split</span>(<span class="str">\':\'</span>).<span class="fn">filter</span>(<span class="type">Boolean</span>));\n' +
+'  <span class="kw">for</span> (<span class="kw">const</span> p <span class="kw">of</span> std) cur.<span class="fn">add</span>(p);\n' +
+'  process.<span class="prop">env</span>.<span class="prop">PATH</span> = [...cur].<span class="fn">join</span>(<span class="str">\':\'</span>);\n' +
+'}\n\n' +
+'<span class="cm">// 2. 顺序执行：插件必须在内置发现之后运行</span>\n' +
+'<span class="kw">await</span> <span class="fn">ensureUserCliCompatShims</span>();\n' +
+'<span class="kw">await</span> <span class="fn">discoverClis</span>(<span class="var">BUILTIN_CLIS</span>, <span class="var">USER_CLIS</span>);\n' +
+'<span class="kw">await</span> <span class="fn">discoverPlugins</span>();\n\n' +
+'<span class="cm">// 3. 注册退出钩子和后台更新检查</span>\n' +
+'<span class="fn">registerUpdateNoticeOnExit</span>();\n' +
+'<span class="fn">checkForUpdateBackground</span>();\n\n' +
+'<span class="cm">// 4. 快速路径：补全处理</span>\n' +
+'<span class="kw">if</span> (getCompIdx !== <span class="num">-1</span>) {\n' +
+'  <span class="kw">const</span> candidates = <span class="fn">getCompletions</span>(words, cursor);\n' +
+'  process.stdout.<span class="fn">write</span>(candidates.<span class="fn">join</span>(<span class="str">\'\\n\'</span>) + <span class="str">\'\\n\'</span>);\n' +
+'  process.<span class="fn">exit</span>(<span class="var">EXIT_CODES</span>.<span class="prop">SUCCESS</span>);\n' +
+'}\n\n' +
+'<span class="cm">// 5. 启动 CLI</span>\n' +
+'<span class="kw">await</span> <span class="fn">emitHook</span>(<span class="str">\'onStartup\'</span>, { <span class="prop">command</span>: <span class="str">\'__startup__\'</span>, <span class="prop">args</span>: {} });\n' +
+'<span class="fn">runCli</span>(<span class="var">BUILTIN_CLIS</span>, <span class="var">USER_CLIS</span>);' +
+'</code></pre></div>' +
+'</div>'
+                    }
+                ]
+            },
+            cli: {
+                title: '⚙️ CLI 框架 (cli.ts)',
+                file: 'src/cli.ts',
+                description: 'Commander.js 程序初始化，内置命令注册（list, validate, explore, daemon 等）',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">cli.ts (CLI 框架)</div>' +
+'<ul class="diagram-list">' +
+'<li>创建 Commander Program 实例</li>' +
+'<li>配置基础选项 (name, description, version)</li>' +
+'<li>注册内置命令：list, validate, explore, synthesize, cascade, doctor, daemon, plugin, register</li>' +
+'<li>注册动态适配器命令 (通过 commanderAdapter)</li>' +
+'<li>解析命令行参数并执行</li>' +
+'</ul>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>Commander 初始化</strong> — 配置程序名称、描述、版本</li>' +
+'<li><strong>内置命令</strong> — 注册 list、validate、explore 等核心命令</li>' +
+'<li><strong>参数解析</strong> — 支持位置参数、命名选项、布尔标志</li>' +
+'<li><strong>动态注册</strong> — 通过 registerAllCommands() 注册发现的适配器</li>' +
+'<li><strong>错误处理</strong> — 统一捕获和处理命令执行错误</li>' +
+'<li><strong>帮助系统</strong> — 自动生成帮助文本和使用说明</li>' +
+'</ul>'
+                    }
+                ]
+            },
+            registry: {
+                title: '📋 注册中心 (registry.ts)',
+                file: 'src/registry.ts',
+                description: '全局命令注册表，管理所有 CLI 命令的元数据、策略和参数定义',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">registry.ts (注册中心)</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">Strategy 枚举 (5 级认证策略)</div>' +
+'<ul class="diagram-list">' +
+'<li>PUBLIC - 直接 HTTP fetch，无需认证</li>' +
+'<li>COOKIE - 复用 Chrome Cookie</li>' +
+'<li>HEADER - 自定义认证头</li>' +
+'<li>INTERCEPT - 网络请求拦截捕获</li>' +
+'<li>UI - DOM 交互操作</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">CliCommand 接口</div>' +
+'<ul class="diagram-list">' +
+'<li>site, name, description, domain</li>' +
+'<li>strategy, browser, args, columns</li>' +
+'<li>func (TS 适配器) / pipeline (YAML)</li>' +
+'<li>timeoutSeconds, source, deprecated</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">全局注册表 (Map)</div>' +
+'<ul class="diagram-list">' +
+'<li>Key: "site:name"</li>' +
+'<li>Value: CliCommand</li>' +
+'</ul>' +
+'</div>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>Strategy 枚举</strong> — 定义 5 级认证策略</li>' +
+'<li><strong>CliCommand 接口</strong> — 统一命令元数据结构</li>' +
+'<li><strong>registerCommand()</strong> — 注册命令到全局注册表</li>' +
+'<li><strong>getRegistry()</strong> — 获取完整注册表</li>' +
+'<li><strong>fullName()</strong> — 生成 "site:name" 格式的命令名</li>' +
+'<li><strong>strategyLabel()</strong> — 获取策略标签</li>' +
+'</ul>'
+                    },
+                    {
+                        title: '📝 关键接口定义',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">TypeScript</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="kw">export enum</span> <span class="type">Strategy</span> {\n' +
+'  <span class="prop">PUBLIC</span> = <span class="str">\'public\'</span>,\n' +
+'  <span class="prop">COOKIE</span> = <span class="str">\'cookie\'</span>,\n' +
+'  <span class="prop">HEADER</span> = <span class="str">\'header\'</span>,\n' +
+'  <span class="prop">INTERCEPT</span> = <span class="str">\'intercept\'</span>,\n' +
+'  <span class="prop">UI</span> = <span class="str">\'ui\'</span>,\n' +
+'}\n\n' +
+'<span class="kw">export interface</span> <span class="type">CliCommand</span> {\n' +
+'  <span class="prop">site</span>: <span class="type">string</span>;              <span class="cm">// 站点名称 (如 "bilibili")</span>\n' +
+'  <span class="prop">name</span>: <span class="type">string</span>;              <span class="cm">// 命令名称 (如 "hot")</span>\n' +
+'  <span class="prop">aliases</span>?: <span class="type">string</span>[];        <span class="cm">// 别名</span>\n' +
+'  <span class="prop">description</span>: <span class="type">string</span>;       <span class="cm">// 描述</span>\n' +
+'  <span class="prop">domain</span>?: <span class="type">string</span>;           <span class="cm">// 域名</span>\n' +
+'  <span class="prop">strategy</span>?: <span class="type">Strategy</span>;       <span class="cm">// 认证策略</span>\n' +
+'  <span class="prop">browser</span>?: <span class="type">boolean</span>;         <span class="cm">// 是否需要浏览器</span>\n' +
+'  <span class="prop">args</span>: <span class="type">Arg</span>[];               <span class="cm">// 参数定义</span>\n' +
+'  <span class="prop">columns</span>?: <span class="type">string</span>[];        <span class="cm">// 输出列</span>\n' +
+'  <span class="prop">func</span>?: (page, kwargs, debug) =&gt; <span class="type">Promise</span>&lt;<span class="type">unknown</span>&gt;;  <span class="cm">// TS 处理函数</span>\n' +
+'  <span class="prop">pipeline</span>?: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt;[];  <span class="cm">// YAML 管道</span>\n' +
+'  <span class="prop">timeoutSeconds</span>?: <span class="type">number</span>;   <span class="cm">// 超时时间</span>\n' +
+'  <span class="prop">source</span>?: <span class="type">string</span>;           <span class="cm">// 来源 (\'yaml\', \'ts\', 插件名)</span>\n' +
+'  <span class="prop">deprecated</span>?: <span class="type">boolean</span> | <span class="type">string</span>;  <span class="cm">// 弃用标记</span>\n' +
+'  <span class="prop">replacedBy</span>?: <span class="type">string</span>;       <span class="cm">// 替代命令</span>\n' +
+'  <span class="prop">navigateBefore</span>?: <span class="type">boolean</span> | <span class="type">string</span>;  <span class="cm">// 预导航控制</span>\n' +
+'}' +
+'</code></pre></div>' +
+'</div>'
+                    }
+                ]
+            },
+            pipeline: {
+                title: '📄 YAML Pipeline 引擎',
+                file: 'src/pipeline/',
+                description: '声明式数据管道，支持 fetch、map、filter、limit、download 等步骤',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Pipeline 引擎架构</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">数据流</div>' +
+'<div class="flow-diagram">' +
+'<div class="flow-item">null (初始数据)</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">[fetch] HTTP API 请求</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">[select] 路径提取</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">[map] 数据映射</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">[filter] 条件过滤</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">[limit] 截取结果</div>' +
+'</div>' +
+'</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">已注册步骤 (16 个)</div>' +
+'<ul class="diagram-list">' +
+'<li><strong>网络请求：</strong>fetch</li>' +
+'<li><strong>浏览器操作：</strong>navigate, click, type, wait, press, snapshot, evaluate</li>' +
+'<li><strong>网络拦截：</strong>intercept, tap</li>' +
+'<li><strong>数据转换：</strong>select, map, filter, sort, limit</li>' +
+'<li><strong>文件下载：</strong>download</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">核心文件</div>' +
+'<ul class="diagram-list">' +
+'<li>executor.ts (执行器，重试机制)</li>' +
+'<li>registry.ts (步骤注册表)</li>' +
+'<li>template.ts (模板引擎)</li>' +
+'<li>steps/*.ts (步骤实现)</li>' +
+'</ul>' +
+'</div>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>声明式管道</strong> — YAML 配置，无需编写代码</li>' +
+'<li><strong>数据流传递</strong> — 每步输出作为下一步输入</li>' +
+'<li><strong>模板引擎</strong> — 支持变量访问和表达式</li>' +
+'<li><strong>重试机制</strong> — 浏览器步骤默认重试 2 次</li>' +
+'<li><strong>步骤注册</strong> — 支持自定义步骤扩展</li>' +
+'<li><strong>并发支持</strong> — fetch 和 download 支持并发</li>' +
+'</ul>'
+                    },
+                    {
+                        title: '📝 完整示例',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">YAML</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="prop">site</span>: <span class="str">bilibili</span>\n' +
+'<span class="prop">name</span>: <span class="str">hot</span>\n' +
+'<span class="prop">description</span>: <span class="str">B 站热门视频</span>\n' +
+'<span class="prop">domain</span>: <span class="str">bilibili.com</span>\n' +
+'<span class="prop">strategy</span>: <span class="str">cookie</span>\n' +
+'<span class="prop">args</span>:\n' +
+'  <span class="prop">limit</span>:\n' +
+'    <span class="prop">type</span>: <span class="str">int</span>\n' +
+'    <span class="prop">default</span>: <span class="num">10</span>\n' +
+'    <span class="prop">positional</span>: <span class="kw">true</span>\n' +
+'<span class="prop">pipeline</span>:\n' +
+'  - <span class="fn">fetch</span>:\n' +
+'      <span class="prop">url</span>: <span class="str">https://api.bilibili.com/x/web-interface/popular</span>\n' +
+'      <span class="prop">params</span>:\n' +
+'        <span class="prop">ps</span>: <span class="num">20</span>\n' +
+'        <span class="prop">pn</span>: <span class="num">1</span>\n' +
+'  - <span class="fn">select</span>: <span class="str">data.list</span>\n' +
+'  - <span class="fn">map</span>:\n' +
+'      <span class="prop">title</span>: <span class="str">${{ item.title }}</span>\n' +
+'      <span class="prop">author</span>: <span class="str">${{ item.owner.name }}</span>\n' +
+'      <span class="prop">views</span>: <span class="str">${{ item.stat.view }}</span>\n' +
+'      <span class="prop">url</span>: <span class="str">https://www.bilibili.com/video/${{ item.bvid }}</span>\n' +
+'  - <span class="fn">sort</span>:\n' +
+'      <span class="prop">by</span>: <span class="str">views</span>\n' +
+'      <span class="prop">order</span>: <span class="str">desc</span>\n' +
+'  - <span class="fn">limit</span>: <span class="str">${{ args.limit }}</span>\n' +
+'<span class="prop">columns</span>:\n' +
+'  - <span class="str">title</span>\n' +
+'  - <span class="str">author</span>\n' +
+'  - <span class="str">views</span>\n' +
+'  - <span class="str">url</span>' +
+'</code></pre></div>' +
+'</div>'
+                    }
+                ]
+            },
+            browserBridge: {
+                title: '🖥️ Browser Bridge 模式',
+                file: 'src/browser/mcp.ts',
+                description: '通过本地 Daemon 和 Chrome 扩展与浏览器通信，复用登录态',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Browser Bridge 架构</div>' +
+'<div class="flow-diagram">' +
+'<div class="flow-item">CLI (Node.js)</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">BrowserBridge.connect()</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">检查 Daemon 状态 (isDaemonRunning)</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">如未运行 → spawn 子进程启动 daemon.ts</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">等待 Extension WebSocket 连接</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">创建 Page 实例 (实现 IPage 接口)</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">Page.goto() → sendCommand(\'navigate\', {url})</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">Daemon HTTP POST /command</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">WebSocket 转发 → Extension</div>' +
+'<div class="flow-arrow-down">↓</div>' +
+'<div class="flow-item">Extension chrome.tabs.create() → 返回 tabId</div>' +
+'</div>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>自动启动 Daemon</strong> — 首次浏览器命令时自动启动</li>' +
+'<li><strong>WebSocket 连接</strong> — 与 Extension 持久连接</li>' +
+'<li><strong>IPage 实现</strong> — 通过 Page 类实现统一接口</li>' +
+'<li><strong>会话管理</strong> — 管理浏览器会话生命周期</li>' +
+'<li><strong>状态机</strong> — idle → connecting → connected → closing → closed</li>' +
+'<li><strong>空闲超时</strong> — Daemon 默认 4 小时无活动自动退出</li>' +
+'</ul>'
+                    }
+                ]
+            },
+            adapters: {
+                title: '💻 TypeScript 适配器开发指南',
+                file: 'src/clis/',
+                description: '编程式适配器开发完全指南 — 从零到发布，覆盖 API 发现、方案选择、适配器编写、测试验证全流程',
+                sections: [
+                    {
+                        title: '📋 适配器类型选择',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">认证策略决策树</div>' +
+'<div class="flow-diagram">' +
+'<div class="flow-item">fetch(url) 直接能拿到数据？</div>' +
+'<div class="flow-arrow-down">↓ 是</div>' +
+'<div class="flow-item" style="border-color: #22c55e;">✅ Tier 1: Public → YAML (browser: false)</div>' +
+'<div class="flow-arrow-down">↓ 否</div>' +
+'<div class="flow-item">fetch(url, {credentials:\'include\'}) 能拿到？</div>' +
+'<div class="flow-arrow-down">↓ 是</div>' +
+'<div class="flow-item" style="border-color: #38bdf8;">✅ Tier 2: Cookie → YAML 或 TS</div>' +
+'<div class="flow-arrow-down">↓ 否</div>' +
+'<div class="flow-item">加 Bearer/CSRF Header 后能拿到？</div>' +
+'<div class="flow-arrow-down">↓ 是</div>' +
+'<div class="flow-item" style="border-color: #eab308;">✅ Tier 3: Header → TS 适配器</div>' +
+'<div class="flow-arrow-down">↓ 否</div>' +
+'<div class="flow-item">页面自己能请求成功（签名/风控）？</div>' +
+'<div class="flow-arrow-down">↓ 是</div>' +
+'<div class="flow-item" style="border-color: #f472b6;">✅ Tier 4: Intercept → TS + installInterceptor</div>' +
+'<div class="flow-arrow-down">↓ 否</div>' +
+'<div class="flow-item" style="border-color: #ef4444;">❌ Tier 5: UI → TS + DOM 交互操作</div>' +
+'</div>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🏗️ TypeScript 适配器基本结构',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">TypeScript</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="kw">import</span> { <span class="fn">cli</span>, <span class="type">Strategy</span> } <span class="kw">from</span> <span class="str">\'../../registry.js\'</span>;\n' +
+'<span class="kw">import</span> { <span class="type">CommandExecutionError</span>, <span class="type">EmptyResultError</span> } <span class="kw">from</span> <span class="str">\'../../errors.js\'</span>;\n\n' +
+'<span class="fn">cli</span>({\n' +
+'  <span class="prop">site</span>: <span class="str">\'mysite\'</span>,\n' +
+'  <span class="prop">name</span>: <span class="str">\'search\'</span>,\n' +
+'  <span class="prop">description</span>: <span class="str">\'Search MySite\'</span>,\n' +
+'  <span class="prop">domain</span>: <span class="str">\'www.mysite.com\'</span>,\n' +
+'  <span class="prop">strategy</span>: <span class="type">Strategy</span>.<span class="prop">COOKIE</span>,\n' +
+'  <span class="prop">args</span>: [\n' +
+'    { <span class="prop">name</span>: <span class="str">\'query\'</span>, <span class="prop">required</span>: <span class="kw">true</span>, <span class="prop">help</span>: <span class="str">\'Search query\'</span> },\n' +
+'    { <span class="prop">name</span>: <span class="str">\'limit\'</span>, <span class="prop">type</span>: <span class="str">\'int\'</span>, <span class="prop">default</span>: <span class="num">10</span> },\n' +
+'  ],\n' +
+'  <span class="prop">columns</span>: [<span class="str">\'title\'</span>, <span class="str">\'url\'</span>, <span class="str">\'date\'</span>],\n\n' +
+'  <span class="prop">func</span>: <span class="kw">async</span> (page, kwargs) <span class="op">=&gt;</span> {\n' +
+'    <span class="kw">const</span> { query, limit = <span class="num">10</span> } = kwargs;\n\n' +
+'    <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">\'https://www.mysite.com\'</span>);\n\n' +
+'    <span class="kw">const</span> data = <span class="kw">await</span> page.<span class="fn">evaluate</span>(<span class="str">`</span>\n' +
+'      <span class="kw">async</span> () <span class="op">=&gt;</span> {\n' +
+'        <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`/api/search?q=${<span class="fn">encodeURIComponent</span>(<span class="fn">String</span>(query))}`</span>, {\n' +
+'          <span class="prop">credentials</span>: <span class="str">\'include\'</span>\n' +
+'        });\n' +
+'        <span class="kw">return</span> (<span class="kw">await</span> res.<span class="fn">json</span>()).results;\n' +
+'      }\n' +
+'    <span class="str">`</span>);\n\n' +
+'    <span class="kw">if</span> (!<span class="type">Array</span>.<span class="fn">isArray</span>(data))\n' +
+'      <span class="kw">throw new</span> <span class="type">CommandExecutionError</span>(<span class="str">\'Unexpected response\'</span>);\n' +
+'    <span class="kw">if</span> (!data.length)\n' +
+'      <span class="kw">throw new</span> <span class="type">EmptyResultError</span>(<span class="str">\'mysite search\'</span>, <span class="str">\'Try different keyword\'</span>);\n\n' +
+'    <span class="kw">return</span> data.<span class="fn">slice</span>(<span class="num">0</span>, <span class="type">Number</span>(limit)).<span class="fn">map</span>((item) <span class="op">=&gt;</span> ({\n' +
+'      <span class="prop">title</span>: item.title,\n' +
+'      <span class="prop">url</span>: item.url,\n' +
+'      <span class="prop">date</span>: item.created_at,\n' +
+'    }));\n' +
+'  },\n' +
+'});' +
+'</code></pre></div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 开发步骤',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 1: API 发现</div>' +
+'<ul class="diagram-list">' +
+'<li><strong>自动化发现：</strong>运行 <code>opencli explore https://example.com --site mysite</code></li>' +
+'<li><strong>手动抓包：</strong>用浏览器开发者工具观察 Network 面板</li>' +
+'<li><strong>模拟交互：</strong>点击按钮/标签触发懒加载 API</li>' +
+'<li><strong>验证 API：</strong>用 <code>page.evaluate()</code> 中的 <code>fetch()</code> 测试</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 2: 创建适配器文件</div>' +
+'<ul class="diagram-list">' +
+'<li>在 <code>src/clis/mysite/</code> 目录下创建 <code>search.ts</code></li>' +
+'<li>导入 <code>cli</code> 和 <code>Strategy</code> 从 <code>../../registry.js</code></li>' +
+'<li>导入错误类从 <code>../../errors.js</code></li>' +
+'<li>调用 <code>cli({...})</code> 注册命令</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 3: 编写核心逻辑</div>' +
+'<ul class="diagram-list">' +
+'<li><strong>定义元数据：</strong>site, name, description, domain, strategy</li>' +
+'<li><strong>定义参数：</strong>args 数组（位置参数优先）</li>' +
+'<li><strong>定义输出列：</strong>columns 数组</li>' +
+'<li><strong>实现 func：</strong>page.goto() → page.evaluate() → 数据处理 → 返回</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 4: 错误处理</div>' +
+'<ul class="diagram-list">' +
+'<li><code>AuthRequiredError</code> — 缺少登录态/Cookie</li>' +
+'<li><code>EmptyResultError</code> — 空但有效的响应</li>' +
+'<li><code>CommandExecutionError</code> — 意外的 API 或浏览器错误</li>' +
+'<li><code>TimeoutError</code> — 站点超时</li>' +
+'<li><code>ArgumentError</code> — 无效的用户输入</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 5: 测试验证</div>' +
+'<ul class="diagram-list">' +
+'<li>运行 <code>opencli mysite search "test"</code> 验证功能</li>' +
+'<li>测试不同输出格式：<code>-f json</code>, <code>-f table</code>, <code>-f csv</code></li>' +
+'<li>测试边界情况：空结果、无效参数、未登录</li>' +
+'<li>添加单元测试到 <code>src/clis/mysite/search.test.ts</code></li>' +
+'</ul>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '📝 共享工具函数',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">TypeScript</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="cm">// src/clis/_shared/utils.ts — 共享工具函数</span>\n\n' +
+'<span class="cm">// 带 Cookie 的 fetch 封装</span>\n' +
+'<span class="kw">export async function</span> <span class="fn">fetchJson</span>(page, url, opts = {}) {\n' +
+'  <span class="kw">const</span> result = <span class="kw">await</span> page.<span class="fn">evaluate</span>(<span class="str">`</span>\n' +
+'    <span class="kw">async</span> () <span class="op">=&gt;</span> {\n' +
+'      <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">${<span class="type">JSON</span>.<span class="fn">stringify</span>(url)}</span>, {\n' +
+'        <span class="prop">credentials</span>: <span class="str">\'include\'</span>,\n' +
+'        ...<span class="str">${<span class="type">JSON</span>.<span class="fn">stringify</span>(opts)}</span>\n' +
+'      });\n' +
+'      <span class="kw">if</span> (!res.ok) <span class="kw">throw new</span> <span class="type">Error</span>(<span class="str">`HTTP ${<span class="str">${res.status}</span>}`</span>);\n' +
+'      <span class="kw">return</span> res.<span class="fn">json</span>();\n' +
+'    }\n' +
+'  <span class="str">`</span>);\n' +
+'  <span class="kw">return</span> result;\n' +
+'}\n\n' +
+'<span class="cm">// 分页获取</span>\n' +
+'<span class="kw">export async function</span> <span class="fn">fetchWithPagination</span>(page, baseUrl, params, limit) {\n' +
+'  <span class="kw">const</span> all = [];\n' +
+'  <span class="kw">let</span> page = <span class="num">1</span>;\n' +
+'  <span class="kw">while</span> (all.length &lt; limit) {\n' +
+'    <span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">fetchJson</span>(page, <span class="str">`${<span class="str">${baseUrl}</span>?pn=${<span class="str">${page}</span>}&amp;ps=20`</span>);\n' +
+'    <span class="kw">if</span> (!data.list?.length) <span class="kw">break</span>;\n' +
+'    all.<span class="fn">push</span>(...data.list);\n' +
+'    page++;\n' +
+'  }\n' +
+'  <span class="kw">return</span> all.<span class="fn">slice</span>(<span class="num">0</span>, limit);\n' +
+'}' +
+'</code></pre></div>' +
+'</div>'
+                    }
+                ]
+            },
+            plugin: {
+                title: '🧩 插件系统开发指南',
+                file: 'src/plugin.ts',
+                description: '插件开发完全指南 — 创建、发布、安装自定义插件，扩展 OpenCLI 功能',
+                sections: [
+                    {
+                        title: '📋 插件架构概览',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">插件目录结构</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">单插件模式</div>' +
+'<div class="code-content" style="padding: 10px;"><pre><code>' +
+'<span class="str">my-plugin/</span>\n' +
+'├── <span class="str">opencli-plugin.json</span>    <span class="cm"># 插件清单</span>\n' +
+'├── <span class="str">package.json</span>           <span class="cm"># npm 包配置</span>\n' +
+'└── <span class="str">clis/</span>                  <span class="cm"># 适配器目录</span>\n' +
+'    ├── <span class="str">mysite/</span>\n' +
+'    │   ├── <span class="str">search.ts</span>\n' +
+'    │   └── <span class="str">hot.ts</span>\n' +
+'    └── <span class="str">_shared/</span>\n' +
+'        └── <span class="str">utils.ts</span>' +
+'</code></pre></div>' +
+'</div>' +
+'<div class="diagram-nested">' +
+'<div class="diagram-nested-title">Monorepo 模式（多插件）</div>' +
+'<div class="code-content" style="padding: 10px;"><pre><code>' +
+'<span class="str">opencli-plugins/</span>\n' +
+'├── <span class="str">opencli-plugin.json</span>    <span class="cm"># 声明多个子插件</span>\n' +
+'├── <span class="str">package.json</span>\n' +
+'├── <span class="str">plugins/</span>\n' +
+'│   ├── <span class="str">social/</span>            <span class="cm"># 社交媒体插件</span>\n' +
+'│   │   ├── <span class="str">clis/</span>\n' +
+'│   │   └── <span class="str">opencli-plugin.json</span>\n' +
+'│   └── <span class="str">finance/</span>           <span class="cm"># 财经插件</span>\n' +
+'│       ├── <span class="str">clis/</span>\n' +
+'│       └── <span class="str">opencli-plugin.json</span>\n' +
+'└── <span class="str">_shared/</span>' +
+'</code></pre></div>' +
+'</div>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '📝 插件清单文件',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">JSON</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'{\n' +
+'  <span class="prop">"name"</span>: <span class="str">"my-opencli-plugin"</span>,\n' +
+'  <span class="prop">"version"</span>: <span class="str">"1.0.0"</span>,\n' +
+'  <span class="prop">"description"</span>: <span class="str">"My custom OpenCLI plugin"</span>,\n' +
+'  <span class="prop">"opencli"</span>: <span class="str">"&gt;=1.5.0"</span>,\n' +
+'  <span class="prop">"plugins"</span>: {\n' +
+'    <span class="prop">"social"</span>: {\n' +
+'      <span class="prop">"path"</span>: <span class="str">"plugins/social"</span>,\n' +
+'      <span class="prop">"version"</span>: <span class="str">"1.0.0"</span>,\n' +
+'      <span class="prop">"description"</span>: <span class="str">"Social media adapters"</span>\n' +
+'    },\n' +
+'    <span class="prop">"finance"</span>: {\n' +
+'      <span class="prop">"path"</span>: <span class="str">"plugins/finance"</span>,\n' +
+'      <span class="prop">"version"</span>: <span class="str">"1.0.0"</span>,\n' +
+'      <span class="prop">"description"</span>: <span class="str">"Finance adapters"</span>\n' +
+'    }\n' +
+'  }\n' +
+'}' +
+'</code></pre></div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 开发步骤',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 1: 创建插件项目</div>' +
+'<ul class="diagram-list">' +
+'<li>创建目录 <code>my-plugin/</code></li>' +
+'<li>创建 <code>opencli-plugin.json</code> 清单文件</li>' +
+'<li>创建 <code>package.json</code>（可选，用于 npm 发布）</li>' +
+'<li>创建 <code>clis/</code> 目录存放适配器</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 2: 编写适配器</div>' +
+'<ul class="diagram-list">' +
+'<li>在 <code>clis/</code> 下按站点创建子目录</li>' +
+'<li>编写 TypeScript 或 YAML 适配器</li>' +
+'<li>导入路径使用 <code>../../registry.js</code>（运行时会被垫片替换）</li>' +
+'<li>确保每个适配器调用 <code>cli({...})</code> 注册命令</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 3: 安装插件</div>' +
+'<ul class="diagram-list">' +
+'<li><strong>本地安装：</strong><code>opencli plugin install ./path/to/my-plugin</code></li>' +
+'<li><strong>Git 安装：</strong><code>opencli plugin install github:user/repo</code></li>' +
+'<li><strong>URL 安装：</strong><code>opencli plugin install https://github.com/user/repo</code></li>' +
+'<li>插件安装到 <code>~/.opencli/plugins/&lt;name&gt;/</code></li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 4: 生命周期钩子（可选）</div>' +
+'<ul class="diagram-list">' +
+'<li><code>onStartup(ctx)</code> — CLI 启动时执行</li>' +
+'<li><code>onBeforeExecute(ctx)</code> — 命令执行前</li>' +
+'<li><code>onAfterExecute(ctx)</code> — 命令执行后</li>' +
+'<li>钩子函数在插件模块顶层调用</li>' +
+'</ul>' +
+'</div>' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">Step 5: 管理插件</div>' +
+'<ul class="diagram-list">' +
+'<li><code>opencli plugin list</code> — 列出已安装插件</li>' +
+'<li><code>opencli plugin update &lt;name&gt;</code> — 更新插件</li>' +
+'<li><code>opencli plugin uninstall &lt;name&gt;</code> — 卸载插件</li>' +
+'<li><code>opencli plugin enable/disable &lt;name&gt;</code> — 启用/禁用</li>' +
+'</ul>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '📝 插件示例代码',
+                        content: '<div class="code-block">' +
+'<div class="code-header">' +
+'<div class="code-dots">' +
+'<div class="code-dot red"></div>' +
+'<div class="code-dot yellow"></div>' +
+'<div class="code-dot green"></div>' +
+'</div>' +
+'<div class="code-lang">TypeScript</div>' +
+'</div>' +
+'<div class="code-content"><pre><code>' +
+'<span class="cm">// clis/mysite/search.ts — 插件中的适配器</span>\n' +
+'<span class="kw">import</span> { <span class="fn">cli</span>, <span class="type">Strategy</span> } <span class="kw">from</span> <span class="str">\'../../registry.js\'</span>;\n' +
+'<span class="kw">import</span> { <span class="type">CommandExecutionError</span> } <span class="kw">from</span> <span class="str">\'../../errors.js\'</span>;\n\n' +
+'<span class="fn">cli</span>({\n' +
+'  <span class="prop">site</span>: <span class="str">\'mysite\'</span>,\n' +
+'  <span class="prop">name</span>: <span class="str">\'search\'</span>,\n' +
+'  <span class="prop">description</span>: <span class="str">\'Search MySite\'</span>,\n' +
+'  <span class="prop">domain</span>: <span class="str">\'www.mysite.com\'</span>,\n' +
+'  <span class="prop">strategy</span>: <span class="type">Strategy</span>.<span class="prop">COOKIE</span>,\n' +
+'  <span class="prop">args</span>: [\n' +
+'    { <span class="prop">name</span>: <span class="str">\'query\'</span>, <span class="prop">required</span>: <span class="kw">true</span> },\n' +
+'    { <span class="prop">name</span>: <span class="str">\'limit\'</span>, <span class="prop">type</span>: <span class="str">\'int\'</span>, <span class="prop">default</span>: <span class="num">10</span> },\n' +
+'  ],\n' +
+'  <span class="prop">columns</span>: [<span class="str">\'title\'</span>, <span class="str">\'url\'</span>],\n' +
+'  <span class="prop">func</span>: <span class="kw">async</span> (page, kwargs) <span class="op">=&gt;</span> {\n' +
+'    <span class="kw">const</span> { query, limit = <span class="num">10</span> } = kwargs;\n' +
+'    <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">\'https://www.mysite.com\'</span>);\n' +
+'    <span class="kw">const</span> data = <span class="kw">await</span> page.<span class="fn">evaluate</span>(<span class="str">`</span>\n' +
+'      <span class="kw">async</span> () <span class="op">=&gt;</span> {\n' +
+'        <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`/api/search?q=${<span class="fn">encodeURIComponent</span>(query)}`</span>, {\n' +
+'          <span class="prop">credentials</span>: <span class="str">\'include\'</span>\n' +
+'        });\n' +
+'        <span class="kw">return</span> (<span class="kw">await</span> res.<span class="fn">json</span>()).results;\n' +
+'      }\n' +
+'    <span class="str">`</span>);\n' +
+'    <span class="kw">return</span> data.<span class="fn">slice</span>(<span class="num">0</span>, limit);\n' +
+'  },\n' +
+'});\n\n' +
+'<span class="cm">// 生命周期钩子示例</span>\n' +
+'<span class="fn">onStartup</span>((ctx) <span class="op">=&gt;</span> {\n' +
+'  console.<span class="fn">log</span>(<span class="str">\'My plugin loaded!\'</span>);\n' +
+'});' +
+'</code></pre></div>' +
+'</div>'
+                    }
+                ]
+            },
+            domSnapshot: {
+                title: '📸 DOM 快照引擎',
+                file: 'src/browser/dom-snapshot.ts',
+                description: '智能 DOM 裁剪，为 LLM 生成可访问性快照，注入 data-opencli-ref',
+                sections: [
+                    {
+                        title: '🏗️ 架构设计',
+                        content: '<div class="architecture-diagram">' +
+'<div class="diagram-box">' +
+'<div class="diagram-title">DOM Snapshot 处理流程</div>' +
+'<ul class="diagram-list">' +
+'<li>遍历 DOM 树，收集可见性 + 布局 + 交互信号</li>' +
+'<li>裁剪不可见、零面积、非内容元素</li>' +
+'<li>SVG & 装饰元素折叠</li>' +
+'<li>Shadow DOM 遍历</li>' +
+'<li>同源 iframe 内容提取</li>' +
+'<li>边界框父子去重 (link/button 包裹子元素)</li>' +
+'<li>绘制顺序遮挡检测 (overlay/modal 覆盖)</li>' +
+'<li>属性白名单过滤</li>' +
+'<li>表格感知序列化 (markdown tables)</li>' +
+'<li>Token 高效序列化 + 交互索引</li>' +
+'<li>data-ref 注解 (用于 click/type 定位)</li>' +
+'<li>隐藏交互元素提示 (scroll-to-reveal)</li>' +
+'<li>增量 Diff (标记新元素 *)</li>' +
+'</ul>' +
+'</div>' +
+'</div>'
+                    },
+                    {
+                        title: '🔑 核心功能',
+                        content: '<ul class="feature-list">' +
+'<li><strong>可见性检测</strong> — CSS display/visibility/opacity 检查</li>' +
+'<li><strong>交互性检测</strong> — 标签、ARIA role、事件属性、cursor</li>' +
+'<li><strong>广告过滤</strong> — 基于域名、class、属性过滤广告</li>' +
+'<li><strong>增量 Diff</strong> — 对比上次快照，新元素标记 *</li>' +
+'<li><strong>Shadow DOM</strong> — 穿透 Shadow Root 遍历内容</li>' +
+'<li><strong>iframe 提取</strong> — 处理同源 iframe (最多 5 个)</li>' +
+'<li><strong>Markdown 表格</strong> — 自动识别并序列化表格</li>' +
+'<li><strong>data-opencli-ref</strong> — 注入唯一索引供后续操作</li>' +
+'</ul>'
+                    },
+                    {
+                        title: '📝 输出格式示例',
+                        content: '<div class="code-block">' +
+'url: https://www.bilibili.com\n' +
+'title: 哔哩哔哩 (゜-゜) つロ 干杯~-bilibili\n' +
+'viewport: 1920x1080\n' +
+'page_scroll: 0.0↑ 3.2↓\n' +
+'---\n' +
+'[1]&lt;a href=/ &gt;首页&lt;/a&gt;\n' +
+'[2]&lt;a href=/hot &gt;热门&lt;/a&gt;\n' +
+'|scroll|&lt;div class="feed"&gt; (0.5↑ 3.2↓)\n' +
+'  [3]&lt;a href=/video/BV1xx &gt;视频标题&lt;/a&gt;\n' +
+'  [4]&lt;button type=submit &gt;搜索&lt;/button&gt;\n' +
+'  *[5]&lt;a href=/new &gt;新出现的元素&lt;/a&gt;\n' +
+'---\n' +
+'hidden_interactive (2):\n' +
+'  &lt;button&gt; "加载更多" ~2.5 pages below\n' +
+'  &lt;a&gt; "下一页" ~1.0 pages below\n' +
+'---\n' +
+'interactive: 5 | iframes: 0' +
+'</div>'
+                    }
+                ]
+            }
+        };
+
+        // 显示详情页面
+        function showDetail(moduleId) {
+            const detail = moduleDetails[moduleId];
+            if (!detail) {
+                alert('该模块的详细信息暂未添加');
+                return;
+            }
+
+            // 构建详情内容
+            let content = '<div class="detail-header">' +
+                '<div class="detail-title">' + detail.title + '</div>' +
+                '<div class="detail-file">' + detail.file + '</div>' +
+                '<div class="detail-desc">' + detail.description + '</div>' +
+                '</div>';
+
+            // 添加各个部分
+            detail.sections.forEach(function(section) {
+                content += '<div class="detail-section">' +
+                    '<h3>' + section.title + '</h3>' +
+                    section.content +
+                    '</div>';
+            });
+
+            // 更新内容并切换页面
+            document.getElementById('detail-content').innerHTML = content;
+            document.getElementById('overview-page').classList.remove('active');
+            document.getElementById('detail-page').classList.add('active');
+            
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+        }
+
+        // 返回总览
+        function showOverview() {
+            document.getElementById('detail-page').classList.remove('active');
+            document.getElementById('overview-page').classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                showOverview();
+            }
+        });
+    </script>
+</body>
+</html>
