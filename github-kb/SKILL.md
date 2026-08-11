@@ -1,6 +1,6 @@
 ---
 name: github-kb
-description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当用户提到github、repo、repository、仓库,或要求下载/搜索GitHub内容时使用此技能。此技能处理所有GitHub相关的查询和仓库管理操作。
+description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当用户提到github、repo、repository、仓库,或要求下载/搜索GitHub内容时使用此技能。此技能处理所有GitHub相关的查询和仓库管理操作。知识库目录采用 `owner/repo` 两层结构存储。
 ---
 
 # GitHub 知识库
@@ -11,7 +11,7 @@ description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当�
 
 **知识库位置:** `~/workspace/github-kb`
 
-**目录结构:** 所有仓库以 `owner/repo` 格式存储，例如 `QwenLM/Qwen3-ASR`
+**目录结构:** 所有仓库以 `owner/repo` 两层结构存储,例如 `QwenLM/Qwen3-ASR`(克隆时必须显式指定目标目录)
 
 **仓库索引:** 通过 `@~/workspace/github-kb/CLAUDE.md` 引用 - 包含所有已下载仓库的一句话摘要
 
@@ -34,24 +34,30 @@ description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当�
 
 当用户请求下载仓库时:
 
-1. **验证知识库目录是否存在:**
+1. **确认 gh CLI 可用:**
    ```bash
-   ls -la ~/workspace/github-kb
+   gh auth status
    ```
-   - 如果目录不存在,询问用户正确的路径
-   - 如果路径更改,更新SKILL.md中的路径
+   - 若未登录,提示用户先执行 `gh auth login`
 
-2. **克隆仓库:**
+2. **确保知识库目录存在(首次使用自动初始化):**
+   ```bash
+   mkdir -p ~/workspace/github-kb
+   ```
+   - 默认路径为 `~/workspace/github-kb`;若用户指定了其他路径,更新本SKILL.md中的路径
+
+3. **克隆仓库(保持 `owner/repo` 两层目录结构):**
    ```bash
    cd ~/workspace/github-kb
-   gh repo clone <owner/repo>
-   # 或: git clone https://github.com/<owner/repo>.git
+   gh repo clone <owner/repo> <owner>/<repo>
+   # 或: git clone https://github.com/<owner>/<repo>.git <owner>/<repo>
    ```
-   - 克隆后自动创建 `owner/repo` 目录结构
+   - **必须**显式指定目标目录 `<owner>/<repo>`,因为 `gh repo clone`/`git clone` 默认只创建 `<repo>` 单层目录,不会自动生成 owner 层
+   - 克隆后验证结果:`ls -la ~/workspace/github-kb/<owner>/<repo>`
 
-3. **更新CLAUDE.md:**
-   - 阅读现有的 `@~/workspace/github-kb/CLAUDE.md`
-   - 为新仓库添加一个条目，使用 `owner/repo` 格式的链接
+4. **更新CLAUDE.md索引:**
+   - 若 `~/workspace/github-kb/CLAUDE.md` 不存在,先创建索引骨架(标题、仓库列表表格、"最后更新"时间戳)
+   - 为新仓库添加一个条目,使用 `owner/repo` 格式的链接
    - 摘要应该描述仓库的功能
    - 更新"最后更新"时间戳
 
@@ -146,11 +152,11 @@ gh pr view <number> --repo <owner/repo>
 - **保持CLAUDE.md更新** - 每个下载的仓库都应该有一句话摘要
 - **使用@引用** - 使用 `@~/workspace/github-kb/CLAUDE.md` 引用CLAUDE.md文件,以便在需要时加载
 - **主动帮助** - 如果本地搜索失败,主动提供搜索GitHub的建议
-- **目录验证** - 如果 `~/workspace/github-kb` 不存在,询问用户正确的路径并更新此技能的SKILL.md
+- **目录结构** - 仓库一律按 `owner/repo` 两层结构存储,克隆时显式指定目标目录;若用户自定义了知识库路径,同步更新本SKILL.md
 
 ## 可用工具
 
-- **gh CLI** - 用于所有GitHub API交互(搜索、查看、克隆)
+- **gh CLI** - 用于所有GitHub API交互(搜索、查看、克隆;克隆前确认已 `gh auth login`)
 - **Glob** - 在本地仓库中查找文件 (`**/*.py`, `**/README.md` 等)
 - **Grep** - 在本地仓库中搜索内容
 - **Read** - 从本地仓库读取特定文件
