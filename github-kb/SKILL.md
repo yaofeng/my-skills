@@ -13,7 +13,7 @@ description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当�
 
 **目录结构:** 所有仓库以 `owner/repo` 两层结构存储,例如 `QwenLM/Qwen3-ASR`(克隆时必须显式指定目标目录)
 
-**仓库索引:** 通过 `@~/workspace/github-kb/CLAUDE.md` 引用 - 包含所有已下载仓库的一句话摘要
+**仓库索引:** 通过 `@~/workspace/github-kb/index.md` 引用 - 包含所有已下载仓库的一句话摘要
 
 ## 核心功能
 
@@ -22,7 +22,7 @@ description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当�
 当用户提到任何GitHub仓库名称或询问某个仓库时:
 
 1. **首先检查本地知识库:**
-   - 阅读 `@~/workspace/github-kb/CLAUDE.md` 查看仓库是否已下载
+   - 阅读 `@~/workspace/github-kb/index.md` 查看仓库是否已下载
    - 如果找到,探索本地副本以回答用户的问题
    - 使用 `Glob` 和 `Read` 工具在仓库内搜索
 
@@ -55,8 +55,8 @@ description: 管理本地GitHub知识库,搜索GitHub仓库、issue和PR。当�
    - **必须**显式指定目标目录 `<owner>/<repo>`,因为 `gh repo clone`/`git clone` 默认只创建 `<repo>` 单层目录,不会自动生成 owner 层
    - 克隆后验证结果:`ls -la ~/workspace/github-kb/<owner>/<repo>`
 
-4. **更新CLAUDE.md索引:**
-   - 若 `~/workspace/github-kb/CLAUDE.md` 不存在,先创建索引骨架(标题、仓库列表表格、"最后更新"时间戳)
+4. **更新index.md索引:**
+   - 若 `~/workspace/github-kb/index.md` 不存在,先创建索引骨架(标题、仓库列表表格、"最后更新"时间戳)
    - 为新仓库添加一个条目,使用 `owner/repo` 格式的链接
    - 摘要应该描述仓库的功能
    - 更新"最后更新"时间戳
@@ -132,7 +132,7 @@ gh pr view <number> --repo <owner/repo>
 ```
 用户提到GitHub/repo/仓库?
     │
-    ├─→ 是: 检查 @~/workspace/github-kb/CLAUDE.md
+    ├─→ 是: 检查 @~/workspace/github-kb/index.md
     │       │
     │       ├─→ 本地找到仓库?
     │       │   ├─→ 是: 探索本地副本,回答问题
@@ -140,7 +140,7 @@ gh pr view <number> --repo <owner/repo>
     │       │            └─→ 询问用户是否要下载
     │       │
     │       └─→ 用户想下载?
-    │           ├─→ 是: gh repo clone → 更新CLAUDE.md
+    │           ├─→ 是: gh repo clone → 更新index.md
     │           └─→ 否: 仅使用gh搜索命令
     │
     └─→ 否: 仅在出现GitHub上下文时使用此技能
@@ -149,8 +149,8 @@ gh pr view <number> --repo <owner/repo>
 ## 重要说明
 
 - **始终先检查本地索引** - 这比搜索GitHub更快,且用户已经精选了这些仓库
-- **保持CLAUDE.md更新** - 每个下载的仓库都应该有一句话摘要
-- **使用@引用** - 使用 `@~/workspace/github-kb/CLAUDE.md` 引用CLAUDE.md文件,以便在需要时加载
+- **保持index.md更新** - 每个下载的仓库都应该有一句话摘要
+- **使用@引用** - 使用 `@~/workspace/github-kb/index.md` 引用CLAUDE.md文件,以便在需要时加载
 - **主动帮助** - 如果本地搜索失败,主动提供搜索GitHub的建议
 - **目录结构** - 仓库一律按 `owner/repo` 两层结构存储,克隆时显式指定目标目录;若用户自定义了知识库路径,同步更新本SKILL.md
 
