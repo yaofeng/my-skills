@@ -1,6 +1,6 @@
 ---
 name: arxiv
-description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库。翻译任务指基于 source 原始 LaTeX 源码进行保留原始格式的原地中文翻译并输出到 source-cn；生成 Markdown 任务指基于 source-cn 已翻译源码生成 translation 下的 Markdown 文档；编译 PDF 任务指根据 source 或 source-cn 中的 LaTeX 工程编译生成 PDF，中文 PDF 需采用适合屏幕阅读的字体与行距优化方案。
+description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库。翻译任务指基于 source 原始 LaTeX 源码进行保留原始格式的原地中文翻译并输出到 source-cn，专业术语默认采用“中文（English）”保留英文原文；生成 Markdown 任务指基于 source-cn 已翻译源码生成 translation 下的 Markdown 文档；编译 PDF 任务指根据 source 或 source-cn 中的 LaTeX 工程编译生成 PDF，中文 PDF 需采用适合屏幕阅读的字体与行距优化方案。
 ---
 
 # arXiv 论文翻译技能
@@ -36,6 +36,7 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 ### 术语约定
 
 - 用户说“翻译”“完整翻译”“全文翻译”“翻译第 X 章”时，默认执行 **任务一：翻译（source → source-cn 原地翻译）**。
+- 所有中文翻译任务默认保留专业术语的英文原文，使用“中文译名（English original）”形式；即使用户没有特别说明，也要遵守本规则。
 - 用户说“生成 Markdown”“导出 Markdown”“生成 translation 文档”时，执行 **任务二：生成 Markdown（source-cn → translation）**。
 - 用户说“编译 PDF”“生成 PDF”“重新编译”“渲染 PDF”时，执行 **任务三：编译 PDF（source/source-cn → PDF）**。
 - 不要把“翻译”“生成 Markdown”和“编译 PDF”混为同一个动作：翻译阶段只产出保留原始 LaTeX 结构的中文源码；Markdown 阶段只从已经翻译好的 `source-cn/` 读取内容并导出 Markdown；编译 PDF 阶段只基于已有 `source/` 或 `source-cn/` LaTeX 工程生成 PDF。
@@ -65,10 +66,23 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 - 保留原始 `.tex` 文件拆分、`\input` / `\include` 顺序、class、bst、bib、图片目录、宏定义和模板文件。
 - 保留原始 LaTeX 环境与排版结构，包括 `figure`、`wrapfigure`、`table`、`table*`、`threeparttable`、`tabular`、`tabularx`、`longtable`、`equation`、`align`、`algorithm`、`itemize`、`enumerate`、脚注、引用和 label。
 - 只翻译自然语言内容：标题、摘要、正文段落、图注、表注、列表项、算法说明、脚注、附录文字、必要的表格文本。
-- 数学公式、数值、表格数据、引用 key、label key、图片路径、代码片段、模型名、基准名、专有名词按语义需要保留。
+- 数学公式、数值、表格数据、引用 key、label key、图片路径和代码片段保持不变；模型名、基准名、专有名词及专业术语按下述英文保留规则处理。
 - 不要把 LaTeX 表格改成 Markdown 表格；不要把图片改成 Markdown 图片；不要重排 figure/table；不要删除原始浮动体。
 - 中文源码建议使用 XeLaTeX 编译：必要时在主文件加入 `\usepackage{ctex}`，并把 `00README.json` 的 compiler 更新为 `xelatex`。
 - 如果当前环境没有 TeX 引擎，只生成可编译的 `source-cn` 源码并明确报告未能编译；不要用重排版 PDF 冒充原始模板编译结果。
+
+### 专业术语英文保留规则
+
+专业术语的英文原文能消除译名歧义，也便于读者检索相关文献。翻译标题、摘要、正文、图注、表注、列表、算法、脚注和附录时遵守：
+
+- 专业术语首次出现时，默认写成“中文译名（English original）”，例如“注意力残差（Attention Residuals）”“流水线并行（pipeline parallelism）”。括号内保留原文术语，不使用自行改写的英文回译。
+- 带缩写的术语写成“中文译名（English Full Name，ACRONYM）”，例如“大语言模型（Large Language Model，LLM）”。原文只给缩写且无法可靠确认全称时，不猜测扩写；保留原缩写并在必要时给出中文说明。
+- 同一术语在同一章节或紧邻段落中重复出现时，可只使用中文译名或通行缩写，避免括号过密；在标题、摘要、图表、算法等可独立阅读的位置，或相隔较远重新出现时，优先再次给出中英对照。
+- 同一术语全篇使用一致的中文译名和英文大小写。不要在不同章节中随意切换译法，也不要把同一英文术语改写成多个中文近义词。
+- 模型名、数据集名、评测基准名、产品名、机构名、代码标识符、API 名和变量名通常直接保留原文，不强行翻译；若确需解释，采用“中文说明（原文名称）”。
+- 数学公式、代码、引用 key、label key、文件路径和命令中的英文不做术语括注或翻译。
+- 对没有公认中文译名、硬译会降低准确性的术语，可保留英文作为正文名称，并在首次出现时补充中文释义；不要为了机械满足格式而创造未经采用的中文术语。
+- 交付前抽查各章节高频术语的首次出现，确认括号中包含准确英文原文，并检查译名、缩写和英文大小写的一致性。
 
 ### 原地翻译覆盖清单
 
@@ -104,6 +118,7 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 当用户要求“生成 Markdown”或在完成原地翻译后继续要求导出 Markdown 时，目标是基于 `source-cn/<paper>/` 忠实生成可阅读 Markdown，而不是总结论文。Markdown 必须满足：
 
 - 原文每个非空正文段落都有语义等价的译文；保留原始段落边界，除非中文表达确有必要拆分。
+- 保留 `source-cn` 中的中英术语对照形式；不得在导出 Markdown 时删除专业术语括号中的英文原文。
 - 不得把多个原文段落合并成摘要、要点或概括，也不得用综合评价替代原文。
 - 保留动机、解释、限定条件、转折、因果链、实现细节、实验目的和局限性；看似重复不构成省略理由。
 - 每个公式、图注、表注、脚注、列表项、算法步骤、附录和参考文献都有对应内容。
@@ -324,12 +339,12 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 
 | 原文 | 翻译 |
 |------|------|
-| Physical AI | Physical AI（物理世界人工智能） |
-| Reasoner | 推理器 |
-| Generator | 生成器 |
+| Physical AI | 物理世界人工智能（Physical AI） |
+| Reasoner | 推理器（Reasoner） |
+| Generator | 生成器（Generator） |
 ```
 
-生成 Markdown 过程中遇到新的技术术语时追加到该表中。
+生成 Markdown 过程中遇到新的技术术语时追加到该表中。术语表与正文统一采用“中文译名（English original）”；模型名、数据集名、基准名等无需强制改写为中文。
 
 ---
 
@@ -555,6 +570,7 @@ Markdown 段落数量不要求机械地与源文一模一样，因为中文可�
 12. 所有 LaTeX 文本命令已转换（`\textlangle`、`\_`、`\,`、`\newline`、`\textsc`、`\underline`、`\cmidrule` 等）。
 13. 论文一级标题（`\title`）已转换为 `#` 标题，摘要已有 `**摘要**` 标记。
 14. 后处理验证脚本 `scripts/md_postcheck.py` 运行通过（无 ERROR）。
+15. 专业术语首次出现已按“中文（English）”保留英文原文，缩写、译名和英文大小写在全文中一致。
 
 任一条件不满足时，报告当前进度和未完成章节，使用”部分 Markdown”而不是”完整 Markdown”。
 
