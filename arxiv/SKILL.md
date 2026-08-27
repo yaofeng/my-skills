@@ -1,6 +1,6 @@
 ---
 name: arxiv
-description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库。翻译任务指基于 source 原始 LaTeX 源码进行保留原始格式的原地中文翻译并输出到 source-cn，专业术语默认采用“中文（English）”保留英文原文；生成 Markdown 任务指基于 source-cn 已翻译源码生成 translation 下的 Markdown 文档；编译 PDF 任务指根据 source 或 source-cn 中的 LaTeX 工程编译生成 PDF，中文 PDF 需采用适合屏幕阅读的字体与行距优化方案。
+description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库。翻译任务指基于 source 原始 LaTeX 源码进行保留原始格式的原地中文翻译并输出到 source-cn；生成 Markdown 任务指基于 source-cn 已翻译源码生成 translation 下的 Markdown 文档；编译 PDF 任务指根据 source 或 source-cn 中的 LaTeX 工程编译生成 PDF，中文 PDF 需采用适合屏幕阅读的字体与行距优化方案；输出中英双语 PDF 任务指建立在翻译任务基础上，将英文原文与中文译文按内容单元（段落/标题/图注/列表）先英后中逐段交替合并，编译双语对照 PDF。
 ---
 
 # arXiv 论文翻译技能
@@ -36,12 +36,13 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 ### 术语约定
 
 - 用户说“翻译”“完整翻译”“全文翻译”“翻译第 X 章”时，默认执行 **任务一：翻译（source → source-cn 原地翻译）**。
-- 所有中文翻译任务默认保留专业术语的英文原文，使用“中文译名（English original）”形式；即使用户没有特别说明，也要遵守本规则。
 - 用户说“生成 Markdown”“导出 Markdown”“生成 translation 文档”时，执行 **任务二：生成 Markdown（source-cn → translation）**。
 - 用户说“编译 PDF”“生成 PDF”“重新编译”“渲染 PDF”时，执行 **任务三：编译 PDF（source/source-cn → PDF）**。
-- 不要把“翻译”“生成 Markdown”和“编译 PDF”混为同一个动作：翻译阶段只产出保留原始 LaTeX 结构的中文源码；Markdown 阶段只从已经翻译好的 `source-cn/` 读取内容并导出 Markdown；编译 PDF 阶段只基于已有 `source/` 或 `source-cn/` LaTeX 工程生成 PDF。
+- 用户说“输出双语 PDF”“中英双语”“英中对照”“双语合并”“先英后中逐段交替”时，执行 **任务四：输出中英双语 PDF（source + source-cn → bilingual PDF）**。
+- 不要把“翻译”“生成 Markdown”“编译 PDF”和“输出双语 PDF”混为同一个动作：翻译阶段只产出保留原始 LaTeX 结构的中文源码；Markdown 阶段只从已经翻译好的 `source-cn/` 读取内容并导出 Markdown；编译 PDF 阶段只基于已有 `source/` 或 `source-cn/` LaTeX 工程生成 PDF；双语 PDF 阶段先基于翻译任务产出的 `source-cn/` 与 `source/` 做块级合并，再编译出双语对照 PDF。
 - 如果用户同时要求“翻译并生成 Markdown”，先完成任务一并通过结构覆盖检查，再执行任务二。
 - 如果用户同时要求“翻译并编译 PDF”，先完成任务一并通过结构覆盖检查，再执行任务三；中文 PDF 优先从 `source-cn/<paper>/` 编译，编译验证后最终 PDF 复制到 `translation/<arXiv编号>-<技术简称>.pdf`。
+- 如果用户同时要求“翻译并输出双语 PDF”，先完成任务一并通过结构覆盖检查，再执行任务四；任务四要求 `source/<paper>/` 与 `source-cn/<paper>/` 的块级结构一致（任务一的结构覆盖检查恰好保证这一点）。
 
 ---
 
@@ -66,23 +67,10 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 - 保留原始 `.tex` 文件拆分、`\input` / `\include` 顺序、class、bst、bib、图片目录、宏定义和模板文件。
 - 保留原始 LaTeX 环境与排版结构，包括 `figure`、`wrapfigure`、`table`、`table*`、`threeparttable`、`tabular`、`tabularx`、`longtable`、`equation`、`align`、`algorithm`、`itemize`、`enumerate`、脚注、引用和 label。
 - 只翻译自然语言内容：标题、摘要、正文段落、图注、表注、列表项、算法说明、脚注、附录文字、必要的表格文本。
-- 数学公式、数值、表格数据、引用 key、label key、图片路径和代码片段保持不变；模型名、基准名、专有名词及专业术语按下述英文保留规则处理。
+- 数学公式、数值、表格数据、引用 key、label key、图片路径、代码片段、模型名、基准名、专有名词按语义需要保留。
 - 不要把 LaTeX 表格改成 Markdown 表格；不要把图片改成 Markdown 图片；不要重排 figure/table；不要删除原始浮动体。
 - 中文源码建议使用 XeLaTeX 编译：必要时在主文件加入 `\usepackage{ctex}`，并把 `00README.json` 的 compiler 更新为 `xelatex`。
 - 如果当前环境没有 TeX 引擎，只生成可编译的 `source-cn` 源码并明确报告未能编译；不要用重排版 PDF 冒充原始模板编译结果。
-
-### 专业术语英文保留规则
-
-专业术语的英文原文能消除译名歧义，也便于读者检索相关文献。翻译标题、摘要、正文、图注、表注、列表、算法、脚注和附录时遵守：
-
-- 专业术语首次出现时，默认写成“中文译名（English original）”，例如“注意力残差（Attention Residuals）”“流水线并行（pipeline parallelism）”。括号内保留原文术语，不使用自行改写的英文回译。
-- 带缩写的术语写成“中文译名（English Full Name，ACRONYM）”，例如“大语言模型（Large Language Model，LLM）”。原文只给缩写且无法可靠确认全称时，不猜测扩写；保留原缩写并在必要时给出中文说明。
-- 同一术语在同一章节或紧邻段落中重复出现时，可只使用中文译名或通行缩写，避免括号过密；在标题、摘要、图表、算法等可独立阅读的位置，或相隔较远重新出现时，优先再次给出中英对照。
-- 同一术语全篇使用一致的中文译名和英文大小写。不要在不同章节中随意切换译法，也不要把同一英文术语改写成多个中文近义词。
-- 模型名、数据集名、评测基准名、产品名、机构名、代码标识符、API 名和变量名通常直接保留原文，不强行翻译；若确需解释，采用“中文说明（原文名称）”。
-- 数学公式、代码、引用 key、label key、文件路径和命令中的英文不做术语括注或翻译。
-- 对没有公认中文译名、硬译会降低准确性的术语，可保留英文作为正文名称，并在首次出现时补充中文释义；不要为了机械满足格式而创造未经采用的中文术语。
-- 交付前抽查各章节高频术语的首次出现，确认括号中包含准确英文原文，并检查译名、缩写和英文大小写的一致性。
 
 ### 原地翻译覆盖清单
 
@@ -118,7 +106,6 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 当用户要求“生成 Markdown”或在完成原地翻译后继续要求导出 Markdown 时，目标是基于 `source-cn/<paper>/` 忠实生成可阅读 Markdown，而不是总结论文。Markdown 必须满足：
 
 - 原文每个非空正文段落都有语义等价的译文；保留原始段落边界，除非中文表达确有必要拆分。
-- 保留 `source-cn` 中的中英术语对照形式；不得在导出 Markdown 时删除专业术语括号中的英文原文。
 - 不得把多个原文段落合并成摘要、要点或概括，也不得用综合评价替代原文。
 - 保留动机、解释、限定条件、转折、因果链、实现细节、实验目的和局限性；看似重复不构成省略理由。
 - 每个公式、图注、表注、脚注、列表项、算法步骤、附录和参考文献都有对应内容。
@@ -339,12 +326,12 @@ description: 下载、翻译、分析 arXiv 论文，构建本地论文资料库
 
 | 原文 | 翻译 |
 |------|------|
-| Physical AI | 物理世界人工智能（Physical AI） |
-| Reasoner | 推理器（Reasoner） |
-| Generator | 生成器（Generator） |
+| Physical AI | Physical AI（物理世界人工智能） |
+| Reasoner | 推理器 |
+| Generator | 生成器 |
 ```
 
-生成 Markdown 过程中遇到新的技术术语时追加到该表中。术语表与正文统一采用“中文译名（English original）”；模型名、数据集名、基准名等无需强制改写为中文。
+生成 Markdown 过程中遇到新的技术术语时追加到该表中。
 
 ---
 
@@ -441,10 +428,10 @@ xelatex -interaction=nonstopmode <main>.tex
 编译 `source-cn/<paper>/` 时，目标是让中文 PDF 既保持原文版式，又适合屏幕阅读。优先使用 XeLaTeX，并在主文件中采用以下策略：
 
 - 使用 `ctex` / `xeCJK` 支持中文，不使用 pdfLaTeX 强行编译中文。
+- 本资料库默认中文字体：**苹方 `PingFang SC`**（用户偏好微软雅黑 `Microsoft YaHei`，macOS 未装时用系统苹方；装好微软雅黑后优先使用）。字体必须先通过实际编译验证，若 `PingFang SC` 的 TTC 映射导致 `fontspec` / `xeCJK` 错误，回退到 `Heiti SC` 或其他稳定字体。
 - 字体优先级：
   - 屏幕阅读版：中文主字体优先选 `Heiti SC`、`PingFang SC`、`Noto Sans CJK SC`、`Source Han Sans SC` 等无衬线字体，粗体更清晰；
-  - 原文论文风格版：若用户要求更接近传统论文，可选 `Songti SC`、`SimSun`、`Noto Serif CJK SC`、`Source Han Serif SC`；
-  - 字体必须先通过实际编译验证。若 `PingFang SC` 的 TTC 映射导致 `fontspec` / `xeCJK` 错误，回退到 `Heiti SC` 或其他稳定字体。
+  - 原文论文风格版：若用户要求更接近传统论文，可选 `Songti SC`、`SimSun`、`Noto Serif CJK SC`、`Source Han Serif SC`。
 - 推荐屏幕阅读参数：
   - 正文字号约 `9.8pt` 到 `10.2pt`；
   - 正文行高约 `13.5pt` 到 `14.5pt`，或 `\linespread{1.15}` 到 `\linespread{1.22}`；
@@ -501,6 +488,123 @@ xelatex -interaction=nonstopmode <main>.tex
 - 如果中文字体不可用，列出已测试字体，并回退到可编译字体。
 - 如果原始工程本身无法编译，不要伪造 PDF；保留源码并说明阻塞点。
 - 如果只生成了部分 PDF 或存在严重排版问题，明确标注为“编译未通过验收”，不要声称完成。
+
+---
+
+## 任务四：输出中英双语 PDF（source + source-cn → bilingual PDF）
+
+### 触发条件
+
+当用户要求“输出双语 PDF”“中英双语”“英中对照”“双语合并”“先英后中逐段交替”时，执行本任务。目标是把英文原文与中文译文合并进同一份 PDF：每个内容单元（自然段、章节标题、图注、列表项等）**先英文、后中文**，逐段交替直到全文结束。
+
+### 与翻译任务的关系
+
+本任务**建立在任务一（翻译）基础上**：需要 `source/<arXiv编号>-<技术简称>/`（英文原文）与 `source-cn/<arXiv编号>-<技术简称>/`（中文译文）同时存在。任务一的结构覆盖检查保证两侧块级结构一致，这正是双语合并的前提。若尚未翻译，先完成任务一再执行本任务。
+
+### 输出位置
+
+- 编译工程：`source-cn/<arXiv编号>-<技术简称>-bilingual/`（独立目录，不污染 `source/` 与 `source-cn/`）。
+- 最终 PDF：`translation/<arXiv编号>-<技术简称>-bilingual.pdf`（与纯中文版并列，不覆盖任何现有文件）。
+- 工程内写 `00README.json`，compiler 标为 `xelatex`。
+
+### 合并流程
+
+优先使用脚本 `scripts/merge_bilingual.py`：
+
+```sh
+python3 <skill_dir>/scripts/merge_bilingual.py \
+  source/<paper>/main.tex source-cn/<paper>/main.tex \
+  --out <bilingual-dir>/main.tex \
+  [--cn-font "PingFang SC"] [--cn-mono-font "Arial Unicode MS"] [--cn-color 7A7A7A] \
+  [--en-font Inter] [--heading-font Helvetica] [--margin 0.7in]
+```
+
+脚本自动完成：
+
+1. **块级对齐**：把两个 `main.tex` 按顶层内容单元切分（章节命令、段落、figure/itemize/abstract/lstlisting/codeblock 环境等），断言两侧块数与类型序列一致；不一致时报错停止，需先核查翻译结构。
+2. **逐块配对合并**：
+   - 标题/章节：`\command{英文\newline 中文}`（英文在上、中文在下）；
+   - 正文段落：英文段 + 空行 + 中文段；
+   - 显示公式 `$$..$$`：只保留英文段，中文段删除以避免重复；内联公式两侧各自保留；
+   - 图片：只出现一次，双语图注合并进单个 `\caption`（`EN\newline{} CN`）；
+   - itemize：`\item` 按英中交替输出；
+   - lstlisting/codeblock：内容两侧相同，只输出一次；
+   - 纯控制段（`\maketitle`、`\clearpage/\appendix`、`\bibliographystyle/\bibliography`、`\end{document}`）：英中相同，只输出一次。
+3. **样式注入**：默认中文字体苹方 + 深灰 `7A7A7A` + 0.9 倍相对缩放（`\zhstyle`），中文段落、标题中文、图注中文内的英文单词/数字/符号与中文一致；英文正文/标题字体与边距可用参数覆盖。
+4. 复制 `bibliography.bib`、`neurips_2024.sty`、`figures/` 到双语工程目录。
+
+**脚本覆盖范围（重要）**：`scripts/merge_bilingual.py` 处理章节、段落、abstract（环境与 `\abstract{}` 命令两种形式）、figure/figure*（含双语图注）、itemize、lstlisting/codeblock 与纯控制段；**不含 `\input` 展开与 `table`/`equation` 环境**（遇到会报 "unhandled block kind"）。**多文件工程（`\input{chapters/...}`）或含 table/equation/align 的论文，请使用扩展脚本 `scripts/merge_bilingual_ext.py`**（参数与 merge_bilingual.py 相同），其额外能力：
+
+- 递归展开 `\input`/`\include`（相对主文件目录解析，合并输出为自包含 `main.tex`）；**每个展开文件前后强制补空行分隔**，避免两侧章节文件末尾换行差异导致块数不匹配（`block counts differ`）。
+- 支持 `env:table/table*`（英文表格体 + 全部 `\caption` 双语化，按出现顺序与中文侧配对）、`env:equation/align/gather/multline`（只输出英文侧一次）、`env:promptbox`（英文一次）。
+- 多行 `\caption{...}` 自动折叠为单行；**caption 参数内以 `%` 开头的行剔除**（否则该注释会吞掉 `\caption` 剩余内容，中文表注丢失）。
+- **段内小标题（`\paragraph`/`\subparagraph`）先英后中衔接英文正文**：英文标题单独输出（run-in，紧跟英文正文），中文标题挂起并插入下一个中文正文块开头，保证版式呈现 "Data Format.All pretraining data..." 而非 "Data Format.\n数据格式。ALL...";若下一块不是正文（如直接跟 figure），挂起的中文标题自动独立成 zh 块避免丢失。
+- **`\paragraph` 的两种原文结构与对应方案（重要）**：① 原文标题与正文**同行**（run-in，如 `\paragraph{Data Format.}All pretraining data...`）→ 用上述挂起方案（merge_bilingual.py 已内置），保持 "EN 标题+EN 正文" 同行，中文标题与中文正文同行对照，不插中文到 EN 标题与 EN 正文之间；② 原文标题**独立成段**（`\paragraph{Annotation pipeline.}` 后跟空行再正文）→ merge_bilingual_ext.py 会把 EN/CN 标题合并为 `\paragraph{EN\\newline CN}`，并检测到该形态时自动注入 block 样式重定义 `\renewcommand{\paragraph}[1]{\par\vspace{1.2ex}\noindent{\normalsize\bfseries #1}\par\nopagebreak}`（subparagraph 同），渲染为 EN 标题、CN 标题各独占一行、正文新段，满足"中文标题之后有换行"。判断依据是正则 `\\paragraph\{[^}]*\}` 后是否紧跟空行；run-in 形态不注入，避免误改版式。若手工修补 main.tex（非重跑脚本），同样注入该重定义即可。
+- zh 环境内剥离 `\label{...}`（英文侧已定义，避免 `Label ... multiply defined`）。
+- preamble 中注释 `\usepackage{CJKutf8}` 并注入 `\usepackage{xeCJK}` + `\setCJKmainfont[Color=...]{...}` 等（pdfLaTeX 源通常没有任何 CJK 字体命令）；若套件已有 ctex/xeCJK 则跳过注入。
+
+历史说明：SKILL.md 曾记载"脚本自动展开 `\input` 且支持 table/equation"，但截至 2026-08-24 仓库内 `merge_bilingual.py` 实为旧版（无此能力）；能力已在 `merge_bilingual_ext.py` 中固化，如需合并回 `merge_bilingual.py` 请以 `merge_bilingual_ext.py` 为准。
+
+### 编译与验证
+
+```sh
+cd source-cn/<paper>-bilingual
+latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex
+```
+
+- 退出码 0；日志无 `^!`、`LaTeX Error`、`Float too large`、`fontspec Error`。
+- `pdfinfo` 确认页数与纸张；渲染抽查首页、正文方法页、图注页、附录页、参考文献页。
+- 通过后复制 `main.pdf` 到 `translation/<arXiv编号>-<技术简称>-bilingual.pdf`，并清理 `.aux/.log/.out/.fls/.fdb_latexmk` 等中间产物（保留 `main.tex`、`main.bbl`、图片、bib、sty）。
+
+### 已知坑位（务必遵守）
+
+- **caption 参数内不能用 `\par`**：触发 natbib `\NR@gettitle` 报错（"Paragraph ended before \NR@gettitle was complete"）。双语图注用 `\newline{}` 分隔。
+- **字号命令后紧跟字母会出问题**：如 `\footnotesize The ...` 在 hyperref 写 PDF 书签时被重新解析为未定义命令 `\footnotesizeThe`。用 `\footnotesize{}` 隔离命令与正文，并把字号/换行命令加入 `\pdfstringdefDisableCommands`。
+- **英文源是 pdfLaTeX 时**：移除 `\begin{CJK}{UTF8}{gbsn}...\end{CJK}` 包装（XeLaTeX 原生渲染汉字）；把 `{\fontencoding{T2A}\selectfont X}` 改写为 `\cyr{X}`（与中文版 preamble 的 `\cyr` 命令一致）。
+- **模板 `\AtBeginDocument` 的 `\newgeometry` 会覆盖 preamble 里的 `\geometry`**（如 neurips_2024.sty）。必须在 `\begin{document}` 之后立即用 `\newgeometry{margin=...,headheight=12pt,headsep=25pt,footskip=30pt}` 才生效。
+- **大图溢出**：所有 `width=\textwidth` 的图统一加 `height=0.72\textheight,keepaspectratio`；双语图注字符总数 >900 时图片缩到 `0.85\textwidth` 且图注 `\footnotesize`，>1350 时缩到 `0.5\textwidth` 且 `\scriptsize`，避免 "Float too large" 裁掉中文图注。
+- **中文样式相对缩放**：`\zhstyle` 用 `\fontsize{\dimexpr\f@size pt * 9 / 10\relax}{...}`（`\f@size` 必须带 `pt` 单位，否则 "Illegal unit of measure"）。不要同时给 CJK 字体加全局 `Scale=0.9`，否则与 `\zhstyle` 双重缩放成 0.81。
+- **书签保护**：进入标题/图注的样式命令（`\zhstyle`、`\headingfont`）用 `\texorpdfstring{\zhstyle}{}` 包裹，并在 `\pdfstringdefDisableCommands` 里 `\let` 为空。
+- **不污染源目录**：合并工程放 `source-cn/<paper>-bilingual/`，不得改写 `source/` 与 `source-cn/` 的原文。
+- **pdfLaTeX 专用模板（bytedance.cls 等）的 XeLaTeX 兼容**：编译双语 PDF 需在工程副本内处理，不要改上游 cls：① `\pdfoutput=1` 与 `\pdfmapline{...}` 是 pdfTeX 原语，用 `\ifdefined\pdfoutput` / `\ifdefined\pdfmapline` 包裹；② 若模板重定义 `\sfdefault` 为自定义 TFM+TTF 字体（如 bytesans），XeLaTeX 无法使用，改为 `\ifXeTeX\renewcommand{\sfdefault}{lmss}\else ...\fi`，并在 `main.tex` 中 `\setsansfont{Helvetica}`（同时满足"标题 Helvetica"需求）；③ `\DisableLigatures`（microtype）仅 pdfTeX 可用，XeTeX 下跳过；④ sectsty 与 templatesec/titlesec 冲突（`\sectionfont already defined`），移除脚本注入的 `\usepackage{sectsty}` + `\allsectionsfont`，仅保留 `\newfontfamily\headingfont` 供 `\title` 使用；⑤ 检查模板中其他自定义字体族（如 `\fontfamily{bytesansmedium}`），XeTeX 下替换为 `lmss` 等可用族。
+- **脚本重跑会覆盖手工修改**：`merge_bilingual.py` 每次运行都会重新注入 sectsty 等样式并覆盖 `main.tex`，对模板的定制（如移除 sectsty、注入 `\setsansfont`）需要做成合并后的固定后处理步骤，或先跑脚本再统一修补。
+- **zh 内重复 `\label`**：若 `\label{...}` 与段落文本同属一个 para 块，双语合并会把 label 同时输出在英文侧与中文（zh）侧，导致 `Label ... multiply defined`。中文（zh）侧必须剥离 `\label{...}`（扩展脚本已内置）。
+- **多行 `\caption`**：跨多行的表注/图注（如 Kodak 表注含内部 `%` 注释行）必须先折叠为单行再合并；caption 参数内以 `%` 开头的行为注释行，若不剔除会把其后同一行文本（包括 `\newline{} \texorpdfstring{...}` 与中文表注）整体注释掉，表现为表注只剩英文、中文丢失。
+- **pdfLaTeX 源无 CJK 字体命令**：若源工程 preamble 没有 `\setCJK*` 命令（pdflatex + `\usepackage{CJKutf8}` 时代工程），`set_cjk_font` 替换不到任何行，合并后 XeLaTeX 中文会缺字体。需注释 `\usepackage{CJKutf8}` 并注入 `\usepackage{xeCJK}` + `\setCJKmainfont`/`\setCJKsansfont`/`\setCJKmonofont`（均加 `Color=<cn-color>`）。若中文等宽字体（如 Arial Unicode MS）本机缺失，`--cn-mono-font` 回退 `PingFang SC`（先 `fc-list | grep -i <font>` 确认）。
+- **大表超宽（Overfull hbox）**：≥10 列的表（如 DiT 架构表）在版心内容易 `Overfull \hbox` 数十 pt（原论文固有）。可在双语工程 `main.tex` 内把该 `tabular` 用 `\resizebox{\linewidth}{!}{% ... %}` 包裹，不污染 `source/` 与 `source-cn/`。
+- **边距压缩与竖版大图溢出**：用户要求压缩页边距时，直接改双语工程 `main.tex` 的全部 `\newgeometry`（标题页、TOC、正文段各有独立 newgeometry，正文段常在 1.5in/1in 左右，可统一压到 0.5in/0.55in；teaser/visualization 宽图页 0.28in 已很小、参考文献保持不动）。注意：textwidth 变大后，竖版长截图（如 1100×2210 的更高分辨率示例图）按 `width=0.75\linewidth` 缩放会超出 letter 物理页高被裁，必须改用 `\includegraphics[width=...,height=0.9\textheight,keepaspectratio]`；超高浮动表（如多 subtable 大表）会把同页文字压到接近页底。验收用 PIL `getbbox()` 对每页渲染 PNG（阈值 200 非白）检查 L/R/T/B 边距 ≥0 且无空页，`Overfull` 应归零。此修改属脚本重跑会被覆盖的后处理，需固化进后处理清单。
+
+### 默认字体与样式规范
+
+双语 PDF 的默认样式（本资料库既定偏好，`scripts/merge_bilingual.py` 的默认参数即此配置）：
+
+| 项目 | 默认值 | 说明 |
+|------|--------|------|
+| 英文正文 | Inter | `\setmainfont{Inter}` |
+| 英文标题（章节标题 + 论文主标题） | Helvetica | sectsty `\allsectionsfont{\headingfont}`，`\title` 内加 `\headingfont` |
+| 中文字体 | PingFang SC | 用户偏好微软雅黑（Microsoft YaHei）；macOS 未装时用系统苹方，装好微软雅黑后改 `--cn-font "Microsoft YaHei"` |
+| 中文颜色 | `7A7A7A`（深灰） | 与英文黑色正文视觉区分，灰度约 50% 黑度，保证可读 |
+| 中文相对字号 | 0.9 倍环境字号 | 段落/标题/图注各自环境字号 × 0.9，不写死磅值 |
+| 中文内容内英文/数字/符号 | 与中文一致 | 中文段落、标题中文、图注中文中的英文单词、数字、引用编号 `[12]`、`§` 符号、内联公式均同色同字号 |
+| 页面边距 | `0.7in` | 减小白边（原模板约 1.5in 左右 + 1in 上下）；用户要求压缩时可在双语工程 main.tex 直接改各 `\newgeometry`（正文段可至 0.5in/0.55in，详见"边距压缩与竖版大图溢出"坑位） |
+| 行距 | `\linespread{1.25}` | 模板 10pt 正文默认 12pt 行距偏密；注入 `\linespread{1.25}`（等价 `\renewcommand{\baselinestretch}{1.25}`）：西文 10pt→15pt（1.5×）、中文 9pt→13.5pt（1.5×9pt，zhstyle 按 `\baselineskip×9/10` 比例自动跟随，无需单独设置）。**必须同时**注入段距 `\setlength{\parskip}{0.5em plus 0.15em minus 0.1em}` 与去首行缩进 `\setlength{\parindent}{0pt}`（齐头排式），EN/CN 块之间才有清晰分段间隔，否则行距放大后段落依然挤在一起。副作用：页数约增 15-20%（NAUTILUS 实测 35→41 页），表格/图注随之增大需复查大表页不溢出；少量 Underfull（段末留白）属行距放宽的正常现象 |
+
+实现要点（已内置于脚本，不必手工写）：
+
+- 中文样式通过 `\zhstyle`（`\color{zhgray}` + `\fontsize{\dimexpr\f@size pt * 9 / 10\relax}{...}`）统一作用于：中文段落（`zh` 环境包裹）、abstract 中文、itemize 中文 item、标题与图注的中文部分（`\texorpdfstring{\zhstyle}{}` 包裹）。
+- 行距与段落（已内置于两个脚本，注入位置在 `\newenvironment{zh}` 之后、`\title` 之前）：`\linespread{1.25}` + `\setlength{\parskip}{0.5em plus 0.15em minus 0.1em}` + `\setlength{\parindent}{0pt}`。`\linespread` 在 preamble 生效于 `\begin{document}` 执行 `\normalsize` 时；手工修补既有双语工程 main.tex 时在 `\newenvironment{zh}` 后补同样三行即可（2026-08-25 NAUTILUS 实测，勿只加行距不加段距/缩进）。
+- 中文字体只加 `Color=7A7A7A`，**不加全局 `Scale`**，避免与 `\zhstyle` 双重缩放成 0.81 倍。
+- 中文等宽字体（`\setCJKmonofont`）保持 `Arial Unicode MS`，仅加同色。
+- 字体名依赖本机已安装字体；缺字体时 fontspec 会报错，先 `fc-list | grep -i <font>` 确认，再回退到已装近似字体。
+
+### 样式定制（可选，按用户要求传参）
+
+默认规范可通过脚本参数覆盖：
+
+- `--en-font`：英文正文字体；`--heading-font`：章节与论文主标题字体。
+- `--cn-font` / `--cn-mono-font` / `--cn-color`：中文字体、中文等宽字体、中文颜色（hex 无 `#`，如 `7A7A7A`）。
+- `--margin`：页面边距（“减小白边”用），默认 `0.7in`。
+- “中文字号缩小/变灰/换字体/中文段内英文同步/减小白边”等需求都通过上述参数实现，脚本在合并时自动注入对应 preamble 配置。
 
 ---
 
@@ -570,7 +674,6 @@ Markdown 段落数量不要求机械地与源文一模一样，因为中文可�
 12. 所有 LaTeX 文本命令已转换（`\textlangle`、`\_`、`\,`、`\newline`、`\textsc`、`\underline`、`\cmidrule` 等）。
 13. 论文一级标题（`\title`）已转换为 `#` 标题，摘要已有 `**摘要**` 标记。
 14. 后处理验证脚本 `scripts/md_postcheck.py` 运行通过（无 ERROR）。
-15. 专业术语首次出现已按“中文（English）”保留英文原文，缩写、译名和英文大小写在全文中一致。
 
 任一条件不满足时，报告当前进度和未完成章节，使用”部分 Markdown”而不是”完整 Markdown”。
 
